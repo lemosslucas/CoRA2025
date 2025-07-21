@@ -1,56 +1,10 @@
 #include "motors.h"
 #include "challenges.h"
+#include "constants.h"
+#include <Wire.h>
 
-// define os sensores
-// sensor1_A1 == ESQUERDA :: sensor5_A5 == DIREITA // sensor0_curva_A0 == ESQUERDA & sensor6_curva_A6 == DIREITA
-const int sensor1_A1 = 15;
-const int sensor2_A2 = 16;
-const int sensor3_A3 = 17;
-const int sensor4_A4 = 18;
-const int sensor5_A5 = 19;
-
-//sensores para a curva
-const int sensor0_curva_A0 = 14;
-const int sensor6_curva_A6 = 10;
-
-// variaveis para ler a saida do sensor
-int SENSOR[5];
-int SENSOR_CURVA[2];
-
-#define BRANCO 0
-#define PRETO 1
-#define OFFSET 0
-#define LINHA_NAO_DETECTADA -5
-#define QUANTIDADE_TOTAL_SENSORES 5
-#define CURVA_NAO_ENCONTRADA 0
-#define DETECCAO_POR_QUADRADO 1
-#define SAIDA_ESQUERDA 0
-#define SAIDA_DIREITA 1
-
-#define DELAY_LOST_LINE 10000
-
-int saida_rotatoria = -1;
-
-const int velocidadeBaseDireita = 160; 
-const int velocidadeBaseEsquerda = 180; 
-int velocidadeDireita = 0;
-int velocidadeEsquerda = 0;
-
-// variaveis para o calculo do PID
-float erro = 0;
-float erroAnterior = 0;
-float I = 0, P = erro, D = 0, PID = 0;
-
-const float Kp = 150, Ki = 0, Kd = 0;
-
-//Constante para a utilizacao do metodo Ultimate Gain
-const float Kcr = 150, Pcr = 0.05;
-//const float Kp = (0.6 * Kcr), Ki = ((2 * Kp) / Pcr), Kd = ((Kp * Pcr) / 8);
-
-// variavel para deteccao da faixa de pedestre
-bool faixa_de_pedestre = false;
-
-unsigned float gyro_bias_z;
+// O objeto MPU precisa ser definido aqui, no arquivo principal,
+MPU6050 mpu(Wire);
  
 void setup() {
   // inicializacao dos sensores

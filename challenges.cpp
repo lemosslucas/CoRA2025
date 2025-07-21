@@ -1,26 +1,6 @@
 #include "challenges.h"
 #include "motors.h"
-
-#include <Wire.h>
-#include <MPU6050_tockn.h>
-MPU6050 mpu(Wire)
-extern float gyro_bias_z;
-
-#define BRANCO 0 
-#define PRETO 1
-#define QUANTIDADE_TOTAL_SENSORES 5
-#define ANGLE_CURVE 90
-
-#define CURVA_ESQUERDA 1
-#define CURVA_DIREITA 2
-#define CURVA_EM_DUVIDA 3
-#define CURVA_NAO_ENCONTRADA 0
-
-#define DETECCAO_POR_QUADRADO 1
-
-// define a velocidade base
-const int velocidadeBaseDireita = 160; //160
-const int velocidadeBaseEsquerda = 180; //210
+#include "constants.h"
 
 /**
  * @brief Calcula o numero de sensores ativos
@@ -93,6 +73,7 @@ void turn_90(int curvaEncontrada) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(-ANGLE_CURVE);
   } else if (curvaEncontrada == CURVA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
   } else if (curvaEncontrada == CURVA_EM_DUVIDA) {
     // lado determinado no dia da prova
