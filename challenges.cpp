@@ -1,6 +1,11 @@
 #include "challenges.h"
 #include "motors.h"
 
+#include <Wire.h>
+#include <MPU6050_tockn.h>
+MPU6050 mpu(Wire)
+extern float gyro_bias_z;
+
 #define BRANCO 0 
 #define PRETO 1
 #define QUANTIDADE_TOTAL_SENSORES 5
@@ -80,23 +85,49 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
  */
 void turn_90(int curvaEncontrada) {
   // para o carro para maior estabilidade
-  parar();
+  stop_motors();
   delay(200);
 
   // verifica qual lado deve ser feito a curva
   if (curvaEncontrada == CURVA_ESQUERDA) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(ANGLE_CURVE);
+    turn_until_angle(-ANGLE_CURVE);
   } else if (curvaEncontrada == CURVA_DIREITA) {
     turn_until_angle(ANGLE_CURVE);
   } else if (curvaEncontrada == CURVA_EM_DUVIDA) {
     // lado determinado no dia da prova
 
-    //curva_esquerda(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    curva_direita(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    //turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
 
     turn_until_angle(ANGLE_CURVE);
   }
+}
+
+
+/**
+ * @brief Mede o desvio (bias) do giroscópio no eixo Z com o robô parado.
+ * 
+ * @param mpu Referência para o objeto do giroscópio (MPU).
+ * @param samples O número de amostras a serem coletadas para a calibração.
+ * @return float O valor do desvio (bias) calculado para o eixo Z.
+ */
+float calibrate_gyro(int samples = 400) {
+    Serial.println("Calibrando o giroscópio... Mantenha o robô parado.");
+    
+    float sum_gz = 0;
+    for (int i = 0; i < samples; i++) {
+        mpu.update(); 
+        sum_gz += mpu.getGyroZ();
+        delay(10); 
+    }
+            
+    float bias_gz = sum_gz / samples;
+    
+    Serial.print("Calibração concluída. Bias do Giroscópio (Gz) = ");
+    Serial.println(bias_gz, 4);
+
+    return bias_gz;
 }
 
 void turn_until_angle(int target_angle) {
@@ -155,15 +186,6 @@ int inverte_sensor(int sensor){
  * - `false` se nenhuma inversão foi detectada.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  if (calcula_sensores_ativos(SENSOR) == 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    // inverte os estados dos sensores
-    for (int i = 0; i < 5; i++) {
-      SENSOR[i] = inverte_sensor(SENSOR[i]);
-    }
-    // retorna true para indiciar que houve inversão
-    return true;
-  }
-  
   if (calcula_sensores_ativos(SENSOR) == 1) {
     // inverte os estados dos sensores
     for (int i = 0; i < 5; i++) {
@@ -172,7 +194,6 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
     // retorna true para indiciar que houve inversão
     return true;
   }
-  
   // retorna false ja que não houve a inversão
   return false;
 }
@@ -188,7 +209,7 @@ void realiza_faixa_de_pedestre() {
   // espera o tempo minimo de 5seg para poder atravessar
   delay(6000);
   // anda para frente para atravessar a pista
-  andar(255, 255);
+  run(255, 255);
   delay(2000); 
 }
 

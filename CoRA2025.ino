@@ -29,7 +29,6 @@ int SENSOR_CURVA[2];
 
 #define DELAY_LOST_LINE 10000
 
-
 int saida_rotatoria = -1;
 
 const int velocidadeBaseDireita = 160; 
@@ -42,7 +41,6 @@ float erro = 0;
 float erroAnterior = 0;
 float I = 0, P = erro, D = 0, PID = 0;
 
-
 const float Kp = 150, Ki = 0, Kd = 0;
 
 //Constante para a utilizacao do metodo Ultimate Gain
@@ -52,6 +50,8 @@ const float Kcr = 150, Pcr = 0.05;
 // variavel para deteccao da faixa de pedestre
 bool faixa_de_pedestre = false;
 
+unsigned float gyro_bias_z;
+ 
 void setup() {
   // inicializacao dos sensores
   pinMode(sensor1_A1, INPUT);
@@ -61,8 +61,12 @@ void setup() {
   pinMode(sensor5_A5, INPUT);
   pinMode(sensor0_curva_A0, INPUT);
   pinMode(sensor6_curva_A6, INPUT);
+  Wire.begin();
+  mpu.begin();
 
   setup_motor();
+  gyro_bias_z = calibrate_gyro();
+
   // inicializa a comunicacao serial
   Serial.begin(9600);
 }
@@ -274,13 +278,14 @@ void realiza_rotatoria(int saidaDesejada){
 void realiza_marcha_re(int historico[]) {
   // atualiza o valor de historico
   for (int i = 0; i < DETECCAO_POR_QUADRADO; i++) {
+    // BUG: A condição 'if' nunca era verdadeira e o laço só executava uma vez.
     if (i > 0) {
-      historico[i] == historico[i - 1];
+      historico[i] = historico[i - 1]; // CORREÇÃO: Usar '=' para atribuição
     } 
   }
 
   // realiza a re ate chegar no local maximo
-  while (erro != LINHA_NAO_DETECTADA) {
+  while (calcula_sensores_ativos(SENSOR) > 0 && calcula_sensores_ativos(SENSOR) < QUANTIDADE_TOTAL_SENSORES) {
     run_backward(255, 255);
     calcula_erro();
   }
