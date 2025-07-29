@@ -24,7 +24,7 @@
 #define SAIDA_ESQUERDA 0
 #define SAIDA_DIREITA 1
 
-#define DELAY_LOST_LINE 10000
+#define DELAY_LOST_LINE 8000
 
 //  Pinos dos Sensores 
 extern const int sensor1_A1;
@@ -59,5 +59,8 @@ extern bool faixa_de_pedestre;
 //  Variáveis do Giroscópio 
 extern MPU6050 mpu;
 extern float gyro_bias_z;
+
+extern int estado_desafio_re; 
+extern int lado_primeira_marca_re; 
 
 #endif // CONSTANTS_H

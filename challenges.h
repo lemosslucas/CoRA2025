@@ -9,6 +9,13 @@ int inverte_sensor(int SENSOR);
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]);
 int calcula_sensores_ativos(int SENSOR[]);
 void realiza_faixa_de_pedestre();
-float calibrate_gyro(int samples = 400); // CORREÇÃO: Declaração da função adicionada
+float calibrate_gyro(int samples = 400);
+int determina_saida_rotatoria(int marcacoesEsquerda, int marcacoesDireita);
+void realiza_rotatoria(int saidaDesejada);
+void turn_until_angle(int target_angle);
+void realiza_marcha_re(int lado_da_curva);
+int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita);
+int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas);
+void realiza_rotatoria(int saidaDesejada);
 
 #endif

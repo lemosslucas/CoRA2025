@@ -71,7 +71,7 @@ void turn_90(int curvaEncontrada) {
   // verifica qual lado deve ser feito a curva
   if (curvaEncontrada == CURVA_ESQUERDA) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(-ANGLE_CURVE);
+    turn_until_angle(ANGLE_CURVE);
   } else if (curvaEncontrada == CURVA_DIREITA) {
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
@@ -192,6 +192,113 @@ void realiza_faixa_de_pedestre() {
   // anda para frente para atravessar a pista
   run(255, 255);
   delay(2000); 
+}
+
+void realiza_marcha_re(int lado_da_curva) {
+  stop_motors();
+  delay(500);
+
+  // 2. Execute a ré por um tempo fixo
+  run_backward(200, 200);
+  delay(1000);
+
+  // 3. Pare novamente
+  stop_motors();
+  delay(500);
+
+  // 4. Vire para o lado da segunda marca, conforme o edital
+  if (lado_da_curva == SAIDA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  } else {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  }
+
+  stop_motors();
+}
+
+int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
+  if (marcacoesDireita < marcacoesEsquerda) {
+    return SAIDA_DIREITA;
+  } else {
+    return SAIDA_ESQUERDA
+  }
+}
+
+
+/**
+ * @brief Determina o lado da saída em uma rotatória baseado no número de marcações detectadas.
+ * 
+ * @param marcacoesEsquerda Armazena as marcacoes a esquerda
+ * @param marcacoesDireita Armazena as marcacoes a direita
+ * 
+ * A partir do numero de marcações a função atualiza o lado correto para
+ * a saida do carro na rotatoria.
+ * 
+ * @return int saidaDesejada 
+ */
+int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
+  if (saidaCurva == CURVA_ESQUERDA) {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  } else if (saidaCurva == CURVA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  }
+
+  if (numeroDeMarcas == 2) {
+    saidaDesejada = 1; // 1ª Saída
+  } else if (numeroDeMarcas == 3) {
+    saidaDesejada = 2; // 2ª Saída
+  } else if (numeroDeMarcas >= 4) { 
+    saidaDesejada = 3; // 3ª Saída
+  }
+  
+  return saidaDesejada;
+}
+
+/**
+ * @brief Realiza a saida na rotatoria
+ * 
+ * @param saidaDesejada Numero que deve ser feito a saida da rotatoria
+ * 
+ * O carro segue o percurso ate chegar na `saidaDesejada`
+ */
+void realiza_rotatoria(int saidaDesejada){
+  // inicializa a saida atual
+  int saidaAtual = 1;
+
+  // loop para que o carro sai apenas na saida correta
+  while(saidaAtual != saidaDesejada) {
+    // calcula o erro para manter o carro na linha
+    calcula_erro();
+    ajusta_movimento();
+
+    // verifica qual lado deve ser feito a saida
+    if (saida_rotatoria == SAIDA_ESQUERDA) {
+      // verifica se ha alguma marcacao na direita
+      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+        delay(200);
+        // atualiza o valor da saida atual
+        saidaAtual++;
+      }
+    } else if(saida_rotatoria == SAIDA_DIREITA) {
+      // verifica se ha alguma marcacao na esquerda
+      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
+        delay(200);
+        // atualiza o valor da saida atual
+        saidaAtual++;
+      }
+    }
+  }
+  
+  // sai para o lado correto da rotatoria
+  if (saida_rotatoria == SAIDA_ESQUERDA) {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  } else {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  }
 }
 
  

@@ -3,9 +3,8 @@
 #include "constants.h"
 #include <Wire.h>
 
-// O objeto MPU precisa ser definido aqui, no arquivo principal,
 MPU6050 mpu(Wire);
- 
+
 void setup() {
   // inicializacao dos sensores
   pinMode(sensor1_A1, INPUT);
@@ -142,117 +141,6 @@ void imprime_serial() {
   Serial.println(velocidadeEsquerda);
 }
 
-/**
- * @brief Determina o lado da saída em uma rotatória baseado no número de marcações detectadas.
- * 
- * @param marcacoesEsquerda Armazena as marcacoes a esquerda
- * @param marcacoesDireita Armazena as marcacoes a direita
- * 
- * A partir do numero de marcações a função atualiza o lado correto para
- * a saida do carro na rotatoria.
- * 
- * @return int saidaDesejada 
- */
-int determina_saida_rotatoria(int marcacoesEsquerda, int marcacoesDireita) {
-  // inicializa com 0 a variavel
-  int saidaDesejada = 0;
-
-  // verifica qual lado deve ser feito a saida
-  if (marcacoesEsquerda > marcacoesDireita) {
-    // calcula a saida apartir do numero de marcacaoes por detecacao no intervalo de tempo + OFFSET(1)
-    saidaDesejada = (marcacoesEsquerda / DETECCAO_POR_QUADRADO) + 1;
-    // realiza o movimento para entrar na rotatoria
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    // atualiza o valor da saida
-    saida_rotatoria = SAIDA_ESQUERDA;
-  } else if(marcacoesEsquerda < marcacoesDireita) {
-    // calcula a saida apartir do numero de marcacaoes por detecacao no intervalo de tempo + OFFSET(1)
-    saidaDesejada = (marcacoesDireita / DETECCAO_POR_QUADRADO) + 1; 
-    // realiza o movimento para entrar na rotatoria
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    // atualiza o valor da saida
-    saida_rotatoria = SAIDA_DIREITA;
-  }
-  
-  //retorna o valor de saida
-  return saidaDesejada;
-}
-
-/**
- * @brief Realiza a saida na rotatoria
- * 
- * @param saidaDesejada Numero que deve ser feito a saida da rotatoria
- * 
- * O carro segue o percurso ate chegar na `saidaDesejada`
- */
-void realiza_rotatoria(int saidaDesejada){
-  // inicializa a saida atual
-  int saidaAtual = 1;
-
-  // loop para que o carro sai apenas na saida correta
-  while(saidaAtual != saidaDesejada) {
-    // calcula o erro para manter o carro na linha
-    calcula_erro();
-    ajusta_movimento();
-
-    // verifica qual lado deve ser feito a saida
-    if (saida_rotatoria == SAIDA_ESQUERDA) {
-      // verifica se ha alguma marcacao na direita
-      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
-        delay(200);
-        // atualiza o valor da saida atual
-        saidaAtual++;
-      }
-    } else if(saida_rotatoria == SAIDA_DIREITA) {
-      // verifica se ha alguma marcacao na esquerda
-      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-        delay(200);
-        // atualiza o valor da saida atual
-        saidaAtual++;
-      }
-    }
-  }
-  
-  // sai para o lado correto da rotatoria
-  if (saida_rotatoria == SAIDA_ESQUERDA) {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  } else {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  }
-}
-
-/**
- * @brief Realiza a marcha re
- * 
- * @param int historico
- * 
- * A partir do historico o robo segue o trajeto dando marcha re e
- * ao chegar ao determinado local ele vira para o lado indicado
- */
-void realiza_marcha_re(int historico[]) {
-  // atualiza o valor de historico
-  for (int i = 0; i < DETECCAO_POR_QUADRADO; i++) {
-    // BUG: A condição 'if' nunca era verdadeira e o laço só executava uma vez.
-    if (i > 0) {
-      historico[i] = historico[i - 1]; // CORREÇÃO: Usar '=' para atribuição
-    } 
-  }
-
-  // realiza a re ate chegar no local maximo
-  while (calcula_sensores_ativos(SENSOR) > 0 && calcula_sensores_ativos(SENSOR) < QUANTIDADE_TOTAL_SENSORES) {
-    run_backward(255, 255);
-    calcula_erro();
-  }
-  stop_motors();
-  delay(500);
-
-  // se o primeiro for esquerda ele vira a direita
-  if (historico[1] == SAIDA_ESQUERDA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  } else {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  }
-}
 
 void loop() {
   // iniciliza as variaveis
@@ -263,8 +151,6 @@ void loop() {
 
   // verifica se ha uma curva de 90
   int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-  int historico_curva[4 * DETECCAO_POR_QUADRADO];
-  int i = 0;
 
   // verifica se a curva foi detectada
   if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
@@ -290,12 +176,22 @@ void loop() {
     }
     
     // determina qual acao deve ser feita
-    if (marcacoesEsquerda == DETECCAO_POR_QUADRADO || marcacoesDireita == DETECCAO_POR_QUADRADO) {
+    if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
       turn_90(saidaCurva);
-    } else if ((marcacoesEsquerda / DETECCAO_POR_QUADRADO) > 1 && (marcacoesDireita / DETECCAO_POR_QUADRADO) > 1) {
-      realiza_marcha_re(historico_curva);
+    } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
+    || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
+      saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
+      realiza_marcha_re(saidaCurva);
     } else{
-      determina_saida_rotatoria(marcacoesEsquerda, marcacoesDireita);
+      saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
+
+      int numeroDeMarcas = if (saidaCurva == SAIDA_ESQUERDA) {
+        marcacoesEsquerda;
+      } else {
+        marcacoesDireita;
+      }
+
+      realiza_rotatoria(determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
     }
 
     stop_motors();
@@ -311,7 +207,8 @@ void loop() {
       if (faixa_de_pedestre == true) {
         realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
-      } else {  
+      } else {
+        // garante que o robo fica parado na linha
         delay(DELAY_LOST_LINE);
 
         // realiza uma re ate que volte para a linha

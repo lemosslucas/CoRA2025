@@ -37,3 +37,6 @@ bool faixa_de_pedestre = false;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;
+
+int estado_desafio_re = 0; // 0 = Normal, 1 = Viu a primeira marca, 2 = Viu a segunda marca
+int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
