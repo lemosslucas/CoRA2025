@@ -60,6 +60,7 @@ extern float I, P, D, PID;
 //  Variáveis de Estado dos Desafios 
 extern int saida_rotatoria;
 extern bool faixa_de_pedestre;
+extern int saida_desejada;
 
 //  Variáveis do Giroscópio 
 extern MPU6050 mpu;

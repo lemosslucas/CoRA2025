@@ -17,6 +17,7 @@
 #include "challenges.h"
 #include <Wire.h>
 #include <MPU6050_tockn.h>
+#include "CoRA2025.h"
 
 // --- Objetos Globais necessários para os testes ---
 MPU6050 mpu(Wire);

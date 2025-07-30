@@ -34,6 +34,7 @@ float I = 0, P = 0, D = 0, PID = 0;
 // Variáveis de Estado dos Desafios
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
+int saida_desejada = 0;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

@@ -1,6 +1,7 @@
 #include "challenges.h"
 #include "motors.h"
 #include "constants.h"
+#include "CoRA2025.h"
 
 /**
  * @brief Calcula o numero de sensores ativos

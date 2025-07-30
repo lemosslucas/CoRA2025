@@ -1,6 +1,7 @@
 #include "motors.h"
 #include "challenges.h"
 #include "constants.h"
+#include "CoRA2025.h"
 #include <Wire.h>
 
 MPU6050 mpu(Wire);
