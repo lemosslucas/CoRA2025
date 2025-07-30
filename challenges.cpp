@@ -302,8 +302,8 @@ void realiza_rotatoria(int saidaDesejada){
 }
 
 void verifica_area_de_parada() {
-  unsigned long tempo_sem_linha = 0;
-  bool temporizador_ativo = false;
+  static unsigned long tempo_sem_linha = 0;
+  static bool temporizador_ativo = false;
 
   int sensores_ativos = calcula_sensores_ativos(SENSOR);
 

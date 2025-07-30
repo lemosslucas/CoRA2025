@@ -141,25 +141,22 @@ void imprime_serial() {
   Serial.println(velocidadeEsquerda);
 }
 
+bool somar_quadrado = false;
 int conta_quadrados(int SENSOR, int marcacoes) {
-  if (somar_quadrado) {
+  if (SENSOR == PRETO && !somar_quadrado) {
+    somar_quadrado = true;
     marcacoes++;
+  } else if (SENSOR == BRANCO) {
     somar_quadrado = false;
-  } else {
-    if (SENSOR[0] == PRETO) {
-      somar_quadrado = true;
-    }
   }
 
   return marcacoes;
 }
 
-bool somar_quadrado = false;
+// iniciliza as variaveis
+int marcacoesDireita = 0, marcacoesEsquerda = 0;
 
-void loop() {
-  // iniciliza as variaveis
-  int marcacoesDireita = 0, marcacoesEsquerda = 0;
-  
+void loop() {  
   // calcula o erro do carro sobre a linha
   calcula_erro();
 
@@ -189,16 +186,25 @@ void loop() {
     // determina qual acao deve ser feita
     if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
       turn_90(saidaCurva);
+
+      // reseta o numero de marcacaoes
+      marcacoesEsquerda = 0; marcacoesDireita = 0;
     } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
     || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
       realiza_marcha_re(saidaCurva);
+
+      // reseta o numero de marcacaoes
+      marcacoesEsquerda = 0; marcacoesDireita = 0;
     } else{
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
 
       int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
 
       realiza_rotatoria(determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
+      
+      // reseta o numero de marcacaoes
+      marcacoesEsquerda = 0; marcacoesDireita = 0;
     }
 
     stop_motors();
