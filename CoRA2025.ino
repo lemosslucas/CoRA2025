@@ -141,20 +141,32 @@ void imprime_serial() {
   Serial.println(velocidadeEsquerda);
 }
 
-bool somar_quadrado = false;
-int conta_quadrados(int SENSOR, int marcacoes) {
-  if (SENSOR == PRETO && !somar_quadrado) {
-    somar_quadrado = true;
-    marcacoes++;
-  } else if (SENSOR == BRANCO) {
-    somar_quadrado = false;
+/**
+ * @brief Conta uma marcação (quadrado preto) usando detecção de borda.
+ * 
+ * @param estadoSensor O estado atual do sensor (PRETO ou BRANCO).
+ * @param contagemAtual O valor atual do contador de marcações.
+ * @param jaContou Referência a uma flag de estado para evitar contagens múltiplas.
+ * @return int A nova contagem de marcações.
+ */
+int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
+  if (estadoSensor == PRETO && !jaContou) {
+    // Ativa a trava para não contar de novo
+    jaContou = true; 
+    return contagemAtual + 1;
+  } else if (estadoSensor == BRANCO) {
+    // Reseta a trava ao ver branco
+    jaContou = false; 
   }
-
-  return marcacoes;
+  // Retorna a contagem sem alterações
+  return contagemAtual; 
 }
 
 // iniciliza as variaveis
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
+
+// verificacao para a contagem de marcações, uma para cada lado.
+bool jaContouEsquerda = false, jaContouDireita = false;
 
 void loop() {  
   // calcula o erro do carro sobre a linha
@@ -170,12 +182,8 @@ void loop() {
       // atualiza o valor dos sensores
       ler_sensores();
       
-      // atualiza os valores de identificacao
-      if (SENSOR_CURVA[0] == BRANCO) {
-        marcacoesEsquerda = conta_quadrados(SENSOR_CURVA[0], marcacoesEsquerda);
-      } else if (SENSOR_CURVA[1] == BRANCO) {
-        marcacoesDireita = conta_quadrados(SENSOR_CURVA[1], marcacoesDireita);
-      }
+      marcacoesEsquerda = contaMarcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
+      marcacoesDireita = contaMarcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
 
       // garantem que o robo continue na linha
       calcula_erro();
@@ -188,14 +196,16 @@ void loop() {
       turn_90(saidaCurva);
 
       // reseta o numero de marcacaoes
-      marcacoesEsquerda = 0; marcacoesDireita = 0;
+      marcacoesEsquerda = 0; jaContouEsquerda = false;
+      marcacoesDireita = 0; jaContouDireita = false;
     } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
     || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
       realiza_marcha_re(saidaCurva);
 
       // reseta o numero de marcacaoes
-      marcacoesEsquerda = 0; marcacoesDireita = 0;
+      marcacoesEsquerda = 0; jaContouEsquerda = false;
+      marcacoesDireita = 0; jaContouDireita = false;
     } else{
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
 
@@ -204,36 +214,45 @@ void loop() {
       realiza_rotatoria(determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
       
       // reseta o numero de marcacaoes
-      marcacoesEsquerda = 0; marcacoesDireita = 0;
+      marcacoesEsquerda = 0; jaContouEsquerda = false;
+      marcacoesDireita = 0; jaContouDireita = false;
     }
 
     stop_motors();
   } else {
     // caso nao detectado curva e tenha perdido a linha
-    if (erro == LINHA_NAO_DETECTADA) {
-      // atualiza o numero de sensores ativos
-      int sensoresAtivos = calcula_sensores_ativos(SENSOR);
+    if (erro == LINHA_NAO_DETECTADA) {      
       PID = 0;
       stop_motors();
 
       // verifica se é uma faixa de pedestre
-      if (faixa_de_pedestre == true) {
+      if (faixa_de_pedestre) {
         realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
       } else {
-        // tecnica para voltar a linha
-        delay(DELAY_LOST_LINE);
+        // Tenta dar ré até encontrar a linha ou atingir o tempo limite.
+        unsigned long tempoPerdido = millis();
+        
+        // Começa a dar ré
+        run_backward(200, 200); 
 
-        // realiza uma re ate que volte para a linha
-        while(sensoresAtivos == QUANTIDADE_TOTAL_SENSORES) {
+        while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
           ler_sensores();
-          sensoresAtivos = calcula_sensores_ativos(SENSOR);
-          run_backward(255, 255);
+          if (calcula_sensores_ativos(SENSOR) > 0) {
+            // Linha encontrada Para a ré e sai do loop.
+            break;
+          }
+          delay(10);
         }
 
         stop_motors();
+        
+        // Se saiu do loop porque o tempo esgotou, para permanentemente.
+        if (millis() - tempoPerdido >= TIME_WITHOUT_LINE) {
+          Serial.println("Área de parada detectada. Robô parado.");
+          while(true);
+        }
       }
-      verifica_area_de_parada();
     } else {
       // caso o carro detecte a linha ele segue a linha
       calcula_PID();
