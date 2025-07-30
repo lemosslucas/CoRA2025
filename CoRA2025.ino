@@ -141,6 +141,20 @@ void imprime_serial() {
   Serial.println(velocidadeEsquerda);
 }
 
+int conta_quadrados(int SENSOR, int marcacoes) {
+  if (somar_quadrado) {
+    marcacoes++;
+    somar_quadrado = false;
+  } else {
+    if (SENSOR[0] == PRETO) {
+      somar_quadrado = true;
+    }
+  }
+
+  return marcacoes;
+}
+
+bool somar_quadrado = false;
 
 void loop() {
   // iniciliza as variaveis
@@ -161,14 +175,11 @@ void loop() {
       
       // atualiza os valores de identificacao
       if (SENSOR_CURVA[0] == BRANCO) {
-        marcacoesEsquerda++;
-        historico_curva[i] = SAIDA_ESQUERDA;
+        marcacoesEsquerda = conta_quadrados(SENSOR_CURVA[0], marcacoesEsquerda);
       } else if (SENSOR_CURVA[1] == BRANCO) {
-        marcacoesDireita++;
-        historico_curva[i] = SAIDA_DIREITA;
+        marcacoesDireita = conta_quadrados(SENSOR_CURVA[1], marcacoesDireita);
       }
 
-      i++;
       // garantem que o robo continue na linha
       calcula_erro();
       calcula_PID();
@@ -185,11 +196,7 @@ void loop() {
     } else{
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
 
-      int numeroDeMarcas = if (saidaCurva == SAIDA_ESQUERDA) {
-        marcacoesEsquerda;
-      } else {
-        marcacoesDireita;
-      }
+      int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
 
       realiza_rotatoria(determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
     }
@@ -208,7 +215,7 @@ void loop() {
         realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
       } else {
-        // garante que o robo fica parado na linha
+        // tecnica para voltar a linha
         delay(DELAY_LOST_LINE);
 
         // realiza uma re ate que volte para a linha
@@ -220,7 +227,7 @@ void loop() {
 
         stop_motors();
       }
-
+      verifica_area_de_parada();
     } else {
       // caso o carro detecte a linha ele segue a linha
       calcula_PID();

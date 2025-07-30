@@ -24,8 +24,8 @@
 #define SAIDA_ESQUERDA 0
 #define SAIDA_DIREITA 1
 
-#define DELAY_LOST_LINE 8000
-
+#define DELAY_LOST_LINE 500
+#define TIME_WITHOUT_LINE 3000 
 //  Pinos dos Sensores 
 extern const int sensor1_A1;
 extern const int sensor2_A2;
