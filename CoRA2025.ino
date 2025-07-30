@@ -14,6 +14,10 @@ void setup() {
   pinMode(sensor5_A5, INPUT);
   pinMode(sensor0_curva_A0, INPUT);
   pinMode(sensor6_curva_A6, INPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+
+  // inicializacao do giroscopio
   Wire.begin();
   mpu.begin();
 

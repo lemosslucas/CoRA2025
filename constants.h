@@ -36,6 +36,10 @@ extern const int sensor5_A5;
 extern const int sensor0_curva_A0;
 extern const int sensor6_curva_A6;
 
+//  Pinos dos LEDs
+extern const int LED_RED;
+extern const int LED_GREEN;
+
 //  Variáveis de Estado dos Sensores 
 extern int SENSOR[5];
 extern int SENSOR_CURVA[2];
