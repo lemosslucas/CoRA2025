@@ -9,6 +9,10 @@ const int sensor5_A5 = 19;
 const int sensor0_curva_A0 = 14;
 const int sensor6_curva_A6 = 10;
 
+// Pinos dos LEDs
+const int LED_RED = 12;
+const int LED_GREEN = 13; 
+
 // Variáveis de Estado dos Sensores
 int SENSOR[5];
 int SENSOR_CURVA[2];
@@ -34,7 +38,7 @@ float I = 0, P = 0, D = 0, PID = 0;
 // Variáveis de Estado dos Desafios
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
-int saida_desejada = 0;
+int saidaDesejada = 0;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

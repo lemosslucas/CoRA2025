@@ -21,7 +21,6 @@
 
 // --- Objetos Globais necessários para os testes ---
 MPU6050 mpu(Wire);
-float gyro_bias_z;
 
 // --- Funções de Teste ---
 
@@ -125,6 +124,9 @@ void test_giroscopio() {
   
   while(Serial.available()) Serial.read();
 
+  float angulo = 0.0;
+  unsigned long tempo_anterior = millis();
+  
   while(!Serial.available()) {
     mpu.update();
     float gz = mpu.getGyroZ();
@@ -133,7 +135,17 @@ void test_giroscopio() {
     Serial.print("Raw Gz: ");
     Serial.print(gz, 4);
     Serial.print("\t | Calibrated Gz: ");
-    Serial.println(gz_calibrado, 4);
+    Serial.print(gz_calibrado, 4);
+
+    unsigned long tempo_atual = millis();
+    float dt = (tempo_atual - tempo_anterior) / 1000.0;  // segundos
+    tempo_anterior = tempo_atual;
+
+    angulo += gz_calibrado * dt;  // integração
+    angulo *= 10;
+    Serial.print("\t | Ângulo girado: ");
+    Serial.println(angulo);
+
     delay(100);
   }
 

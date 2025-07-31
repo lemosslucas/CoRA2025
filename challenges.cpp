@@ -125,7 +125,7 @@ void turn_until_angle(int target_angle) {
       previous_time = current_time;
 
       angle_z += angular_velocity_z * delta_time;
-
+      angle_z *= 10; // pra corrigir o valor
       delay(10);
   }
   stop_motors();
@@ -223,7 +223,7 @@ int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
   if (marcacoesDireita < marcacoesEsquerda) {
     return SAIDA_DIREITA;
   } else {
-    return SAIDA_ESQUERDA
+    return SAIDA_ESQUERDA;
   }
 }
 
