@@ -240,14 +240,6 @@ int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
  * @return int saidaDesejada 
  */
 int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
-  if (saidaCurva == CURVA_ESQUERDA) {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  } else if (saidaCurva == CURVA_DIREITA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  }
-
   if (numeroDeMarcas == 2) {
     saidaDesejada = 1; // 1ª Saída
   } else if (numeroDeMarcas == 3) {
@@ -266,9 +258,18 @@ int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
  * 
  * O carro segue o percurso ate chegar na `saidaDesejada`
  */
-void realiza_rotatoria(int saidaDesejada){
+void realiza_rotatoria(int saidaCurva, int saidaDesejada){
   // inicializa a saida atual
   int saidaAtual = 1;
+
+  // Realiza a curva de 90 graus para entrar na rotatória
+  if (saidaCurva == CURVA_ESQUERDA) {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  } else if (saidaCurva == CURVA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  }
 
   // loop para que o carro sai apenas na saida correta
   while(saidaAtual != saidaDesejada) {

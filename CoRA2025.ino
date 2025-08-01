@@ -245,18 +245,17 @@ void loop() {
           ler_sensores();
           if (calcula_sensores_ativos(SENSOR) > 0) {
             // Linha encontrada Para a ré e sai do loop.
+            stop_motors();
             break;
           }
-          delay(10);
+          delay(5);
         }
 
         stop_motors();
         
         // Se saiu do loop porque o tempo esgotou, para permanentemente.
-        if (millis() - tempoPerdido >= TIME_WITHOUT_LINE) {
-          Serial.println("Área de parada detectada. Robô parado.");
-          while(true);
-        }
+        Serial.println("Área de parada detectada. Robô parado.");
+        while(true);
       }
     } else {
       // caso o carro detecte a linha ele segue a linha
