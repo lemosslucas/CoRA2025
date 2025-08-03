@@ -71,12 +71,18 @@ void turn_90(int curvaEncontrada) {
 
   // verifica qual lado deve ser feito a curva
   if (curvaEncontrada == CURVA_ESQUERDA) {
+    digitalWrite(LED_LEFT, HIGH);
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
+    digitalWrite(LED_LEFT, LOW);
   } else if (curvaEncontrada == CURVA_DIREITA) {
+    digitalWrite(LED_RIGHT, HIGH);
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
-  } else if (curvaEncontrada == CURVA_EM_DUVIDA) {
+    digitalWrite(LED_RIGHT, LOW);
+  } 
+  /*
+  else if (curvaEncontrada == CURVA_EM_DUVIDA) {
     // lado determinado no dia da prova
 
     //turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
@@ -84,6 +90,7 @@ void turn_90(int curvaEncontrada) {
 
     turn_until_angle(ANGLE_CURVE);
   }
+  */
 }
 
 

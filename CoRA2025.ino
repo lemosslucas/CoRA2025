@@ -15,8 +15,8 @@ void setup() {
   pinMode(sensor5_A5, INPUT);
   pinMode(sensor0_curva_A0, INPUT);
   pinMode(sensor6_curva_A6, INPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_LEFT, OUTPUT);
+  pinMode(LED_RIGHT, OUTPUT);
 
   // inicializacao do giroscopio
   Wire.begin();
@@ -199,7 +199,6 @@ void loop() {
     // determina qual acao deve ser feita
     if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
       turn_90(saidaCurva);
-
       // reseta o numero de marcacaoes
       marcacoesEsquerda = 0; jaContouEsquerda = false;
       marcacoesDireita = 0; jaContouDireita = false;
@@ -216,7 +215,7 @@ void loop() {
 
       int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
 
-      realiza_rotatoria(determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
+      realiza_rotatoria(saidaCurva, determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
       
       // reseta o numero de marcacaoes
       marcacoesEsquerda = 0; jaContouEsquerda = false;
@@ -265,6 +264,6 @@ void loop() {
   }
 
   // obtem a saida dos dados do carro
-  //imprime_serial(); 
+  imprime_serial(); 
   delay(5);
 }

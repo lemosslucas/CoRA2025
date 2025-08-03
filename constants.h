@@ -17,7 +17,7 @@
 #define CURVA_NAO_ENCONTRADA 0
 #define CURVA_ESQUERDA 1
 #define CURVA_DIREITA 2
-#define CURVA_EM_DUVIDA 3
+#define CURVA_EM_DUVIDA CURVA_DIREITA // mudar no dia
 #define ANGLE_CURVE 90
 
 #define DETECCAO_POR_QUADRADO 1
@@ -37,8 +37,8 @@ extern const int sensor0_curva_A0;
 extern const int sensor6_curva_A6;
 
 //  Pinos dos LEDs
-extern const int LED_RED;
-extern const int LED_GREEN;
+extern const int LED_LEFT;
+extern const int LED_RIGHT;
 
 //  Variáveis de Estado dos Sensores 
 extern int SENSOR[5];

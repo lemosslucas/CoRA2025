@@ -1,7 +1,7 @@
 #include "constants.h"
 
 // Pinos dos Sensores 
-const int sensor1_A1 = 15;
+const int sensor1_A1 = 9;
 const int sensor2_A2 = 16;
 const int sensor3_A3 = 17;
 const int sensor4_A4 = 18;
@@ -10,8 +10,8 @@ const int sensor0_curva_A0 = 14;
 const int sensor6_curva_A6 = 10;
 
 // Pinos dos LEDs
-const int LED_RED = 12;
-const int LED_GREEN = 13; 
+const int LED_LEFT = 11;
+const int LED_RIGHT = 12;
 
 // Variáveis de Estado dos Sensores
 int SENSOR[5];
