@@ -4,50 +4,46 @@
 #include "CoRA2025.h"
 
 /**
- * @brief Calcula o numero de sensores ativos
+ * @brief Calculates the number of active sensors.
  * 
- * @param SENSOR Array com as saidas dos sensores
+ * An active sensor is one that detects the color black (value 1).
  * 
- * @note Um sensor esta no estado ativo é quando a saida do sensor
- * for igual a 1 = Preto
- * 
- * @return int sensoresAtivos- O numero de sensores ativos
+ * @param SENSOR Array with the state of the 5 main line-following sensors.
+ * @return int The total number of active sensors.
  */
 int calcula_sensores_ativos(int SENSOR[]) {
   int sensoresAtivos = 0;
-  // calcula o numero de sensores ativos
+  // Calculates the number of active sensors
   for(int i = 0; i < 5; i++) {
     sensoresAtivos += SENSOR[i];
   }
   
-  // retorna o numero de sensores ativos
+  // Returns the number of active sensors
   return sensoresAtivos;
 }
 
 /**
- * @brief Determina se o carro deve realizar uma curva de 90 graus.
+ * @brief Determines if the robot should perform a 90-degree turn.
  * 
- * Esta função analisa o estado dos sensores principais e dos sensores de curva 
- * para identificar se o carro deve realizar uma curva de 90 graus e, em caso 
- * positivo, determina o lado da curva.
+ * This function analyzes the state of the main and curve sensors to identify
+ * a 90-degree turn pattern and determine its direction.
  * 
- * @param SENSOR Array contendo os estados dos sensores principais.
- * @param SENSOR_CURVA Array contendo os estados dos sensores responsáveis pela 
- * detecção da curva de 90 graus.
+ * @param SENSOR Array containing the states of the main sensors.
+ * @param SENSOR_CURVA Array containing the states of the curve detection sensors.
  * 
- * @return int Representa o lado da curva:
- * - CURVA_ESQUERDA se a curva for para a esquerda.
- * - CURVA_DIREITA se a curva for para a direita.
- * - CURVA_EM_DUVIDA se não houver certeza sobre o lado da curva.
- * - CURVA_NAO_ENCONTRADA se nenhuma curva for detectada.
+ * @return int An integer representing the turn direction:
+ * - `CURVA_ESQUERDA` if a left turn is detected.
+ * - `CURVA_DIREITA` if a right turn is detected.
+ * - `CURVA_EM_DUVIDA` if the turn direction is uncertain.
+ * - `CURVA_NAO_ENCONTRADA` if no turn is detected.
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  // verifica se a curva é para esquerda
+  // Check for a left turn
   if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == PRETO && SENSOR_CURVA[1] == PRETO
   || calcula_sensores_ativos(SENSOR) == 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
     return CURVA_ESQUERDA;
-  } else if (SENSOR_CURVA[0] == PRETO && SENSOR[0] == PRETO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+  } else if (SENSOR_CURVA[0] == PRETO && SENSOR[0] == PRETO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) { // Check for a right turn
     return CURVA_DIREITA;
   } else if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
     return CURVA_EM_DUVIDA;
@@ -57,19 +53,18 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
 }
 
 /**
- * @brief Realiza a curva de 90
+ * @brief Executes a 90-degree turn using the gyroscope.
  * 
- * @param curvaEncontrada - lado que deve ser feito a curva
+ * Based on the detected turn direction, this function stops the robot for
+ * stability and then performs a precise 90-degree turn.
  * 
- * A partir do lado determinado da curva a função realiza o movimento de curva
- * de 90.
+ * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
-  // para o carro para maior estabilidade
+  // Stop the car for greater stability
   stop_motors();
   delay(200);
 
-  // verifica qual lado deve ser feito a curva
   if (curvaEncontrada == CURVA_ESQUERDA) {
     digitalWrite(LED_LEFT, HIGH);
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
@@ -83,8 +78,8 @@ void turn_90(int curvaEncontrada) {
   } 
   /*
   else if (curvaEncontrada == CURVA_EM_DUVIDA) {
-    // lado determinado no dia da prova
-
+    // Side to be determined on competition day
+    
     //turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
 
@@ -95,14 +90,16 @@ void turn_90(int curvaEncontrada) {
 
 
 /**
- * @brief Mede o desvio (bias) do giroscópio no eixo Z com o robô parado.
+ * @brief Measures the gyroscope's Z-axis bias while the robot is stationary.
  * 
- * @param mpu Referência para o objeto do giroscópio (MPU).
- * @param samples O número de amostras a serem coletadas para a calibração.
- * @return float O valor do desvio (bias) calculado para o eixo Z.
+ * This function should be called during setup to calibrate the gyroscope.
+ * It takes multiple readings and calculates the average drift (bias).
+ * 
+ * @param samples The number of samples to collect for calibration.
+ * @return float The calculated bias value for the Z-axis.
  */
 float calibrate_gyro(int samples = 400) {
-    Serial.println("Calibrando o giroscópio... Mantenha o robô parado.");
+    Serial.println("Calibrating gyroscope... Keep the robot stationary.");
     
     float sum_gz = 0;
     for (int i = 0; i < samples; i++) {
@@ -113,12 +110,21 @@ float calibrate_gyro(int samples = 400) {
             
     float bias_gz = sum_gz / samples;
     
-    Serial.print("Calibração concluída. Bias do Giroscópio (Gz) = ");
+    Serial.print("Calibration complete. Gyroscope Bias (Gz) = ");
     Serial.println(bias_gz, 4);
 
     return bias_gz;
 }
 
+/**
+ * @brief Rotates the robot until a target angle is reached.
+ * 
+ * This function uses the gyroscope to perform a precise rotation. It continuously
+ * integrates the angular velocity to track the current angle and stops the motors
+ * when the target angle is achieved. It relies on a pre-calibrated `gyro_bias_z`.
+ * 
+ * @param target_angle The desired angle of rotation in degrees.
+ */
 void turn_until_angle(int target_angle) {
   unsigned long previous_time = millis();
   float angle_z = 0;
@@ -132,7 +138,7 @@ void turn_until_angle(int target_angle) {
       previous_time = current_time;
 
       angle_z += angular_velocity_z * delta_time;
-      angle_z *= 10; // pra corrigir o valor
+      angle_z *= 10; // Correction factor
       delay(10);
   }
   stop_motors();
@@ -142,13 +148,13 @@ void turn_until_angle(int target_angle) {
 
 
 /**
- * @brief Inverte o valor obtido pelos sensores
+ * @brief Inverts the value obtained from a sensor.
  * 
- * @param int sensor - saida dos sensores
+ * This function ensures the robot can follow an inverted line 
+ * (e.g., white line on a black surface) by applying NOT logic.
  * 
- * Responsavel por garantir que o carro siga a linha quando houver
- * a inversao de cores preto/branco -> branco/preto aplicando a 
- * logica de uma porta logica NOT.
+ * @param sensor The sensor output value (0 for WHITE, 1 for BLACK).
+ * @return int The inverted sensor value (1 becomes 0, 0 becomes 1).
  */
 int inverte_sensor(int sensor){
   if (sensor == 1){ 
@@ -158,50 +164,55 @@ int inverte_sensor(int sensor){
 }
 
 /**
- * @brief Verifica se houve uma inversão nas cores da pista.
+ * @brief Checks for a track color inversion.
  * 
- * Esta função analisa o estado dos sensores principais e dos sensores de curva 
- * para determinar se houve uma inversão nas cores da pista (preto/branco). 
- * Caso detectada, a função inverte os valores dos sensores principais para 
- * que o carro possa continuar seguindo a linha.
+ * This function determines if a track color inversion (black/white to white/black)
+ * has occurred. If detected, it inverts the main sensor values to allow the
+ * robot to continue following the line.
  * 
- * @param SENSOR Array contendo os estados dos sensores principais.
- *               Cada posição representa o estado de um sensor.
- * @param SENSOR_CURVA Array contendo os estados dos sensores de curva.
- *                     Usado para complementar a verificação de inversão.
+ * @param SENSOR Array containing the states of the main sensors. This array is modified in place.
+ * @param SENSOR_CURVA Array containing the states of the curve sensors.
+ * @note The current implementation detects an inversion if exactly one main sensor is active.
+ * @note The `SENSOR_CURVA` parameter is not currently used in this function.
  * 
- * @return bool Retorna:
- * - `true` se uma inversão foi detectada e os sensores principais foram invertidos.
- * - `false` se nenhuma inversão foi detectada.
+ * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   if (calcula_sensores_ativos(SENSOR) == 1) {
-    // inverte os estados dos sensores
+    // Invert the state of the sensors
     for (int i = 0; i < 5; i++) {
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }
-    // retorna true para indiciar que houve inversão
+    // Return true to indicate an inversion occurred
     return true;
   }
-  // retorna false ja que não houve a inversão
+  // Return false as no inversion was detected
   return false;
 }
 
 /**
- * @brief Realiza o movimento de atraversar a faixa de pedestre
+ * @brief Handles the pedestrian crossing challenge.
  * 
- * Esta função simula o comportamento de um robô ao atravessar uma faixa 
- * de pedestres. Primeiro, ele espera o tempo mínimo necessário para garantir 
- * segurança antes de atravessar, depois avança para atravessar a pista.
+ * This function simulates the robot's behavior at a pedestrian crossing.
+ * It waits for a minimum required time (6 seconds) and then moves forward
+ * to cross the track.
  */
 void realiza_faixa_de_pedestre() {
-  // espera o tempo minimo de 5seg para poder atravessar
+  // Wait for the minimum time of 6 seconds to cross
   delay(6000);
-  // anda para frente para atravessar a pista
+  // Move forward to cross the track
   run(255, 255);
   delay(2000); 
 }
 
+/**
+ * @brief Executes the reverse gear challenge.
+ * 
+ * The robot stops, moves backward for a fixed duration, stops again,
+ * and then turns 90 degrees to the specified side.
+ * 
+ * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ */
 void realiza_marcha_re(int lado_da_curva) {
   stop_motors();
   delay(500);
@@ -214,7 +225,7 @@ void realiza_marcha_re(int lado_da_curva) {
   stop_motors();
   delay(500);
 
-  // 4. Vire para o lado da segunda marca, conforme o edital
+  // 4. Turn to the side of the second marker, as per the rules
   if (lado_da_curva == SAIDA_DIREITA) {
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(90);
@@ -226,6 +237,16 @@ void realiza_marcha_re(int lado_da_curva) {
   stop_motors();
 }
 
+/**
+ * @brief Determines the exit direction for a challenge based on marker counts.
+ * 
+ * Compares the number of markers detected on the left and right sides.
+ * The robot should exit on the side with fewer markers.
+ * 
+ * @param marcacoesEsquerda The number of markers detected on the left.
+ * @param marcacoesDireita The number of markers detected on the right.
+ * @return int The determined exit side (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ */
 int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
   if (marcacoesDireita < marcacoesEsquerda) {
     return SAIDA_DIREITA;
@@ -236,15 +257,14 @@ int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
 
 
 /**
- * @brief Determina o lado da saída em uma rotatória baseado no número de marcações detectadas.
+ * @brief Determines the roundabout exit based on the number of detected markers.
  * 
- * @param marcacoesEsquerda Armazena as marcacoes a esquerda
- * @param marcacoesDireita Armazena as marcacoes a direita
+ * Based on the total number of markers seen before entering the roundabout,
+ * this function sets the desired exit number.
  * 
- * A partir do numero de marcações a função atualiza o lado correto para
- * a saida do carro na rotatoria.
- * 
- * @return int saidaDesejada 
+ * @param saidaCurva The direction of the curve to enter the roundabout (currently unused).
+ * @param numeroDeMarcas The total number of markers detected.
+ * @return int The desired exit number (1, 2, or 3).
  */
 int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
   if (numeroDeMarcas == 2) {
@@ -259,17 +279,19 @@ int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
 }
 
 /**
- * @brief Realiza a saida na rotatoria
+ * @brief Navigates the roundabout challenge.
  * 
- * @param saidaDesejada Numero que deve ser feito a saida da rotatoria
+ * The robot enters the roundabout, follows the line, and counts exits until
+ * it reaches the `saidaDesejada`. It then takes that exit.
  * 
- * O carro segue o percurso ate chegar na `saidaDesejada`
+ * @param saidaCurva The direction to turn to enter the roundabout.
+ * @param saidaDesejada The target exit number to take.
  */
 void realiza_rotatoria(int saidaCurva, int saidaDesejada){
-  // inicializa a saida atual
+  // Initialize the current exit count
   int saidaAtual = 1;
 
-  // Realiza a curva de 90 graus para entrar na rotatória
+  // Perform a 90-degree turn to enter the roundabout
   if (saidaCurva == CURVA_ESQUERDA) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(90);
@@ -278,31 +300,30 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada){
     turn_until_angle(90);
   }
 
-  // loop para que o carro sai apenas na saida correta
+  // Loop until the robot reaches the correct exit
   while(saidaAtual != saidaDesejada) {
-    // calcula o erro para manter o carro na linha
+    // Calculate error to stay on the line
     calcula_erro();
     ajusta_movimento();
 
-    // verifica qual lado deve ser feito a saida
+    // Check which side the exit should be on (based on global variable)
     if (saida_rotatoria == SAIDA_ESQUERDA) {
-      // verifica se ha alguma marcacao na direita
+      // Check for a marker on the right (indicating an exit)
       if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
         delay(200);
-        // atualiza o valor da saida atual
+        // Update the current exit count
         saidaAtual++;
       }
     } else if(saida_rotatoria == SAIDA_DIREITA) {
-      // verifica se ha alguma marcacao na esquerda
+      // Check for a marker on the left (indicating an exit)
       if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
         delay(200);
-        // atualiza o valor da saida atual
+        // Update the current exit count
         saidaAtual++;
       }
     }
   }
-  
-  // sai para o lado correto da rotatoria
+  // Exit to the correct side of the roundabout
   if (saida_rotatoria == SAIDA_ESQUERDA) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
   } else {
