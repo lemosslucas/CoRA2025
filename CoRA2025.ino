@@ -6,8 +6,16 @@
 
 MPU6050 mpu(Wire);
 
+/**
+ * @brief Configures and initializes the robot's components.
+ * 
+ * This function runs once at startup. It configures the sensor and LED
+ * pins as input/output, initializes I2C communication (Wire) for the
+ * gyroscope (MPU6050), calibrates the gyroscope to get the bias,
+ * sets up the motors, and initializes serial communication.
+ */
 void setup() {
-  // inicializacao dos sensores
+  // Sensor initialization
   pinMode(sensor1_A1, INPUT);
   pinMode(sensor2_A2, INPUT);
   pinMode(sensor3_A3, INPUT);
@@ -18,22 +26,23 @@ void setup() {
   pinMode(LED_LEFT, OUTPUT);
   pinMode(LED_RIGHT, OUTPUT);
 
-  // inicializacao do giroscopio
+  // Gyroscope initialization
   Wire.begin();
   mpu.begin();
 
   setup_motor();
   gyro_bias_z = calibrate_gyro();
 
-  // inicializa a comunicacao serial
+  // Initialize serial communication
   Serial.begin(9600);
 }
 
 /**
- * @brief Le os estados [0, 1] detectados pelo sensor.
+ * @brief Reads the digital state of the line and curve sensors.
  * 
- * Atualiza os arrays SENSOR & SENSOR_CURVA com os valores
- * atuais detectados pelo sensor
+ * Updates the global arrays `SENSOR` and `SENSOR_CURVA` with the values
+ * read from the corresponding digital pins. The value `PRETO` (1) indicates
+ * that the sensor has detected the line, and `BRANCO` (0) that it has not.
  */
 void ler_sensores() {
   SENSOR[0] = digitalRead(sensor1_A1);
@@ -47,47 +56,53 @@ void ler_sensores() {
 }
 
 /**
- * @brief Ajusta o movimento do carro
+ * @brief Adjusts the motor speeds based on the PID value.
  * 
- * Apartir do valor gerado pelo PID junto com a velocidade base dos motores
- * altera a direção do movimento para permanecer na linha
+ * Calculates the speed for each motor (right and left) by subtracting and
+ * adding the PID value to the base speed. The `constrain` function ensures
+ * that the speed values remain within the valid range (0-255).
+ * It then drives the motors with the new speeds.
  */
 void ajusta_movimento() {
-  // altera o valor de velocidade
+  // Change the speed value
   velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
   velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
   
-  // envia a nova velocidade para a função andar
+  // Send the new speed to the run function
   run(velocidadeDireita, velocidadeEsquerda);
 }
 
 /**
- * @brief Calcula o erro do carro em relação a linha
+ * @brief Calculates the robot's position error relative to the line.
  * 
- * Realiza uma media ponderada com os valores do sensor
- * gerando o erro do carro em relacao a linha.
+ * First, it reads the sensors and checks if a track inversion (pedestrian
+ * crossing) has occurred, updating the `faixa_de_pedestre` flag. Then, it
+ * calculates the error using a weighted average of the 5 line sensor readings.
+ * The error indicates how far and to which side the robot is from the line's center.
+ * If all sensors are on black, it considers the line lost.
+ * The result is stored in the global variable `erro`.
  */
 void calcula_erro() {
-  // atualiza os valores do sensor
+  // Update sensor values
   ler_sensores();
 
-  // verifica se houve inversao, sinalizando uma faixa de pedestre
+  // Check for inversion, signaling a pedestrian crossing
   if (verifica_inversao(SENSOR, SENSOR_CURVA)) {
     faixa_de_pedestre = true;
   }
 
-  // inicializa as variaveis para o calculo do erro
+  // Initialize variables for error calculation
   int pesos[5] = {-2, -1, 0, 1, 2};
   int somatorioErro = 0;
   int sensoresAtivos = 0;
 
-  // realiza um somatorio com os valores e o peso dos sensores
+  // Perform a summation with the sensor values and weights
   for (int i = 0; i < 5; i++) {
     somatorioErro += SENSOR[i] * pesos[i];
     sensoresAtivos += SENSOR[i];
   }
 
-  // determina o erro do carro
+  // Determine the car's error
   if (sensoresAtivos == QUANTIDADE_TOTAL_SENSORES) {
     erro = LINHA_NAO_DETECTADA;
   } else {
@@ -97,33 +112,39 @@ void calcula_erro() {
 }
 
 /**
- * @brief Realiza o calculo do PID
+ * @brief Calculates the PID (Proportional-Integral-Derivative) control value.
  * 
- * A partir do erro e os valores das constantes,
- * Kp, Ki e Kd predefinidas realiza o calculo do
- * Controle Proporcional Derivativo (PID)
+ * Uses the current error to calculate the three control components:
+ * - Proporcional (P): Proporcional ao erro atual.
+ * - Integral (I): Acumula o erro ao longo do tempo para corrigir desvios persistentes.
+ * - Derivativo (D): Responde à taxa de variação do erro para amortecer oscilações.
+ * 
+ * The final PID value is the weighted sum of these components and is used to
+ * adjust the motor speeds.
  */
 void calcula_PID() {
-  // inicializa as variaveis para o calculo
+  // Initialize variables for calculation
   PID = 0;
   P = erro;
   I = constrain(I + P, -255, 255);
   D = erro - erroAnterior;
 
-  // calcula o PID
+  // Calculate PID
   PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
 
-  // atualiza o valor do PID
+  // Update the previous error value
   erroAnterior = erro;
 }
 
 /**
- * @brief Imprime os dados do carro no monitor serial
+ * @brief Prints debugging information to the serial monitor.
  * 
- * Imprime os valores lido, PID, erro e a velocidade do carro
+ * Sends the state of the curve and line sensors, the calculated error value,
+ * the PID output value, and the resulting speeds for the right and left motors
+ * to the serial. Useful for calibrating and monitoring the robot's behavior.
  */
 void imprime_serial() {
-  // imprime os valores do sensores
+  // Print sensor values
   Serial.print(SENSOR_CURVA[0]);
   Serial.print(" | ");
 
@@ -135,7 +156,7 @@ void imprime_serial() {
   Serial.print(SENSOR_CURVA[1]);
   Serial.print(" | ");
 
-  // imprime as variaveis Erro, PID, e velocidades
+  // Print Error, PID, and speed variables
   Serial.print("\tErro: ");
   Serial.print(erro);
   Serial.print(" PID: ");
@@ -147,59 +168,83 @@ void imprime_serial() {
 }
 
 /**
- * @brief Conta uma marcação (quadrado preto) usando detecção de borda.
+ * @brief Counts a marker (black square) using rising edge detection.
  * 
- * @param estadoSensor O estado atual do sensor (PRETO ou BRANCO).
- * @param contagemAtual O valor atual do contador de marcações.
- * @param jaContou Referência a uma flag de estado para evitar contagens múltiplas.
- * @return int A nova contagem de marcações.
+ * Increments the marker count only on the transition from WHITE to BLACK.
+ * A control flag (`jaContou`) is used to ensure that the same marker
+ * is not counted multiple times while the sensor remains over it.
+ * 
+ * @param estadoSensor The current state of the sensor (PRETO or BRANCO).
+ * @param contagemAtual The current value of the marker counter.
+ * @param jaContou Reference to a flag indicating if the current marker has already been counted.
+ * @return int The updated marker count.
  */
 int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
   if (estadoSensor == PRETO && !jaContou) {
-    // Ativa a trava para não contar de novo
+    // Activate the lock to prevent recounting
     jaContou = true; 
     return contagemAtual + 1;
   } else if (estadoSensor == BRANCO) {
-    // Reseta a trava ao ver branco
+    // Reset the lock when white is seen
     jaContou = false; 
   }
-  // Retorna a contagem sem alterações
+  // Return the count unchanged
   return contagemAtual; 
 }
 
-// iniciliza as variaveis
+// Initialize variables
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 
-// verificacao para a contagem de marcações, uma para cada lado.
+// Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
 
+/**
+ * @brief Main function that executes the robot's control loop.
+ * 
+ * This loop is the robot's brain, continuously executing the following logic:
+ * 1. Calculates the error relative to the line.
+ * 2. Checks for a 90-degree turn.
+ * 3. If a turn is detected:
+ *    - Continues following the line while counting side markers (black squares).
+ *    - Based on the number of markers, determines which challenge to execute:
+ *      - Simple 90-degree turn.
+ *      - Reverse gear maneuver.
+ *      - Roundabout challenge.
+ *    - Executes the corresponding maneuver and resets the counters.
+ * 4. If no turn is detected:
+ *    - If the line is lost (`erro == LINHA_NAO_DETECTADA`):
+ *      - Checks if it's a pedestrian crossing and performs the crossing.
+ *      - Otherwise, tries to find the line again by reversing for a while. If not found, it stops.
+ *    - If the line is being followed, it calculates the PID and adjusts the movement.
+ * 5. Prints telemetry data to the serial for debugging.
+ */
 void loop() {  
-  // calcula o erro do carro sobre a linha
+  // Calculate the car's error on the line
   calcula_erro();
 
-  // verifica se ha uma curva de 90
+  // Check if there is a 90-degree curve
   int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
 
-  // verifica se a curva foi detectada
+  // Check if the curve was detected
   if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
-    // caso tenha curva armazena a quantidade de marcaçoes
+    // If there is a curve, store the number of markers
     while(erro != LINHA_NAO_DETECTADA) {
-      // atualiza o valor dos sensores
+      // Update sensor values
       ler_sensores();
       
       marcacoesEsquerda = contaMarcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
       marcacoesDireita = contaMarcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
 
-      // garantem que o robo continue na linha
+      // Ensure the robot stays on the line
       calcula_erro();
       calcula_PID();
       ajusta_movimento();
     }
     
-    // determina qual acao deve ser feita
+    // Determine which action should be taken
     if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
       turn_90(saidaCurva);
-      // reseta o numero de marcacaoes
+      // Reset the number of markers
       marcacoesEsquerda = 0; jaContouEsquerda = false;
       marcacoesDireita = 0; jaContouDireita = false;
     } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
@@ -207,7 +252,7 @@ void loop() {
       saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
       realiza_marcha_re(saidaCurva);
 
-      // reseta o numero de marcacaoes
+      // Reset the number of markers
       marcacoesEsquerda = 0; jaContouEsquerda = false;
       marcacoesDireita = 0; jaContouDireita = false;
     } else{
@@ -217,33 +262,32 @@ void loop() {
 
       realiza_rotatoria(saidaCurva, determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
       
-      // reseta o numero de marcacaoes
+      // Reset the number of markers
       marcacoesEsquerda = 0; jaContouEsquerda = false;
       marcacoesDireita = 0; jaContouDireita = false;
     }
 
     stop_motors();
   } else {
-    // caso nao detectado curva e tenha perdido a linha
+    // If no curve is detected and the line is lost
     if (erro == LINHA_NAO_DETECTADA) {      
       PID = 0;
       stop_motors();
 
-      // verifica se é uma faixa de pedestre
+      // Check if it is a pedestrian crossing
       if (faixa_de_pedestre) {
         realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
       } else {
-        // Tenta dar ré até encontrar a linha ou atingir o tempo limite.
         unsigned long tempoPerdido = millis();
         
-        // Começa a dar ré
+        // Start reversing
         run_backward(200, 200); 
 
         while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
           ler_sensores();
           if (calcula_sensores_ativos(SENSOR) > 0) {
-            // Linha encontrada Para a ré e sai do loop.
+            // Line found. Stop reversing and exit the loop.
             stop_motors();
             break;
           }
@@ -252,18 +296,18 @@ void loop() {
 
         stop_motors();
         
-        // Se saiu do loop porque o tempo esgotou, para permanentemente.
+        // If the loop was exited because the time ran out, stop permanently.
         Serial.println("Área de parada detectada. Robô parado.");
         while(true);
       }
     } else {
-      // caso o carro detecte a linha ele segue a linha
+      // If the car detects the line, it follows the line
       calcula_PID();
       ajusta_movimento();
     }
   }
 
-  // obtem a saida dos dados do carro
+  // Get the output of the car's data
   imprime_serial(); 
   delay(5);
 }
