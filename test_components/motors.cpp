@@ -2,9 +2,9 @@
 
 // Define motor pins
 const int MOTOR_LEFT_CLKWISE = 3;
-const int MOTOR_LEFT_ANTI = 4;
-const int MOTOR_RIGHT_CLKWISE = 7;
-const int MOTOR_RIGHT_ANTI = 8;
+const int MOTOR_LEFT_ANTI = 5;
+const int MOTOR_RIGHT_CLKWISE = 6;
+const int MOTOR_RIGHT_ANTI = 9;
 
 #define DELAY_TO_START 2000
 

@@ -1,13 +1,13 @@
 #include "constants.h"
 
 // Pinos dos Sensores 
-const int sensor1_A1 = 9;
-const int sensor2_A2 = 16;
+const int sensor1_A1 = 14;
+const int sensor2_A2 = 15;
 const int sensor3_A3 = 17;
 const int sensor4_A4 = 18;
 const int sensor5_A5 = 19;
-const int sensor0_curva_A0 = 14;
-const int sensor6_curva_A6 = 10;
+const int sensor0_curva_A0 = 16;
+const int sensor6_curva_A6 = 20;
 
 // Pinos dos LEDs
 const int LED_LEFT = 11;
@@ -18,7 +18,7 @@ int SENSOR[5];
 int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
-const int velocidadeBaseDireita = 160;
+const int velocidadeBaseDireita = 180;
 const int velocidadeBaseEsquerda = 180;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;

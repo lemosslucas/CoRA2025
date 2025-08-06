@@ -198,6 +198,8 @@ int marcacoesDireita = 0, marcacoesEsquerda = 0;
 // Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
 
+bool debugMode = false;
+
 /**
  * @brief Main function that executes the robot's control loop.
  * 
@@ -219,95 +221,100 @@ bool jaContouEsquerda = false, jaContouDireita = false;
  * 5. Prints telemetry data to the serial for debugging.
  */
 void loop() {  
-  // Calculate the car's error on the line
-  calcula_erro();
-
-  // Check if there is a 90-degree curve
-  int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-
-  // Check if the curve was detected
-  if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
-    // If there is a curve, store the number of markers
-    while(erro != LINHA_NAO_DETECTADA) {
-      // Update sensor values
-      ler_sensores();
-      
-      marcacoesEsquerda = contaMarcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
-      marcacoesDireita = contaMarcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
-
-      // Ensure the robot stays on the line
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
-    }
+  if (!debugMode) {
+    // Calculate the car's error on the line
+    calcula_erro();
     
-    // Determine which action should be taken
-    if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
-      turn_90(saidaCurva);
-      // Reset the number of markers
-      marcacoesEsquerda = 0; jaContouEsquerda = false;
-      marcacoesDireita = 0; jaContouDireita = false;
-    } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
-    || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
-      saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
-      realiza_marcha_re(saidaCurva);
+    // Check if there is a 90-degree curve
+    int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
 
-      // Reset the number of markers
-      marcacoesEsquerda = 0; jaContouEsquerda = false;
-      marcacoesDireita = 0; jaContouDireita = false;
-    } else{
-      saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
-
-      int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
-
-      realiza_rotatoria(saidaCurva, determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
-      
-      // Reset the number of markers
-      marcacoesEsquerda = 0; jaContouEsquerda = false;
-      marcacoesDireita = 0; jaContouDireita = false;
-    }
-
-    stop_motors();
-  } else {
-    // If no curve is detected and the line is lost
-    if (erro == LINHA_NAO_DETECTADA) {      
-      PID = 0;
-      stop_motors();
-
-      // Check if it is a pedestrian crossing
-      if (faixa_de_pedestre) {
-        realiza_faixa_de_pedestre();
-        faixa_de_pedestre = false;
-      } else {
-        unsigned long tempoPerdido = millis();
+    // Check if the curve was detected
+    if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
+      // If there is a curve, store the number of markers
+      while(erro != LINHA_NAO_DETECTADA) {
+        // Update sensor values
+        ler_sensores();
         
-        // Start reversing
-        run_backward(200, 200); 
+        marcacoesEsquerda = contaMarcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
+        marcacoesDireita = contaMarcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
 
-        while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
-          ler_sensores();
-          if (calcula_sensores_ativos(SENSOR) > 0) {
-            // Line found. Stop reversing and exit the loop.
-            stop_motors();
-            break;
-          }
-          delay(5);
-        }
-
-        stop_motors();
-        
-        // If the loop was exited because the time ran out, stop permanently.
-        Serial.println("Área de parada detectada. Robô parado.");
-        while(true);
+        // Ensure the robot stays on the line
+        calcula_erro();
+        calcula_PID();
+        ajusta_movimento();
       }
+      
+      // Determine which action should be taken
+      if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
+        turn_90(saidaCurva);
+        // Reset the number of markers
+        marcacoesEsquerda = 0; jaContouEsquerda = false;
+        marcacoesDireita = 0; jaContouDireita = false;
+      } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
+      || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
+        saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
+        realiza_marcha_re(saidaCurva);
+
+        // Reset the number of markers
+        marcacoesEsquerda = 0; jaContouEsquerda = false;
+        marcacoesDireita = 0; jaContouDireita = false;
+      } else{
+        saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
+
+        int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
+
+        realiza_rotatoria(saidaCurva, determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
+        
+        // Reset the number of markers
+        marcacoesEsquerda = 0; jaContouEsquerda = false;
+        marcacoesDireita = 0; jaContouDireita = false;
+      }
+
+      stop_motors();
     } else {
-      // If the car detects the line, it follows the line
-      calcula_PID();
-      ajusta_movimento();
+      // If no curve is detected and the line is lost
+      if (erro == LINHA_NAO_DETECTADA) {      
+        PID = 0;
+        stop_motors();
+
+        // Check if it is a pedestrian crossing
+        if (faixa_de_pedestre) {
+          realiza_faixa_de_pedestre();
+          faixa_de_pedestre = false;
+        } else {
+          unsigned long tempoPerdido = millis();
+          
+          // Start reversing
+          run_backward(200, 200); 
+
+          while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
+            ler_sensores();
+            if (calcula_sensores_ativos(SENSOR) > 0) {
+              // Line found. Stop reversing and exit the loop.
+              stop_motors();
+              break;
+            }
+            delay(5);
+          }
+
+          stop_motors();
+          
+          // If the loop was exited because the time ran out, stop permanently.
+          Serial.println("Área de parada detectada. Robô parado.");
+          while(true);
+        }
+      } else {
+        // If the car detects the line, it follows the line
+        calcula_PID();
+        ajusta_movimento();
+      }
     }
   }
-
+  else {
   // Get the output of the car's data
-  imprime_serial(); 
+    ler_sensores();
+    imprime_serial(); 
+  }
+
   delay(5);
 }
