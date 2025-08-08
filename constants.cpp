@@ -39,6 +39,7 @@ float I = 0, P = 0, D = 0, PID = 0;
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
+bool debugMode = true;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

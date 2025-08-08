@@ -198,8 +198,6 @@ int marcacoesDireita = 0, marcacoesEsquerda = 0;
 // Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
 
-bool debugMode = false;
-
 /**
  * @brief Main function that executes the robot's control loop.
  * 
@@ -311,7 +309,7 @@ void loop() {
     }
   }
   else {
-  // Get the output of the car's data
+    // Get the output of the car's data
     ler_sensores();
     imprime_serial(); 
   }

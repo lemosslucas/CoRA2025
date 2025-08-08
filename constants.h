@@ -61,6 +61,7 @@ extern float I, P, D, PID;
 extern int saida_rotatoria;
 extern bool faixa_de_pedestre;
 extern int saidaDesejada;
+extern bool debugMode;
 
 //  Variáveis do Giroscópio 
 extern MPU6050 mpu;
