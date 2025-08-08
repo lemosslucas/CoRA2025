@@ -3,8 +3,8 @@
 // Define motor pins
 const int MOTOR_LEFT_CLKWISE = 3;
 const int MOTOR_LEFT_ANTI = 5;
-const int MOTOR_RIGHT_CLKWISE = 6;
-const int MOTOR_RIGHT_ANTI=9;
+const int MOTOR_RIGHT_CLKWISE = 9;
+const int MOTOR_RIGHT_ANTI=6;
 
 #define DELAY_TO_START 2000
 
@@ -15,7 +15,7 @@ void setup_motor() {
   pinMode(MOTOR_RIGHT_ANTI, OUTPUT);
   // ensure the car starts off on 2 sec
   stop_motors();
-  delay(DELAY_TO_START);
+  //delay(DELAY_TO_START);
 }
 
 /**

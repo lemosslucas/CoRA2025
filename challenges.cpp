@@ -99,7 +99,7 @@ void turn_90(int curvaEncontrada) {
  * @return float The calculated bias value for the Z-axis.
  */
 float calibrate_gyro(int samples = 200) {
-    Serial.println("Calibrating gyroscope... Keep the robot stationary.");
+    if (debugMode) Serial.println("Calibrating gyroscope... Keep the robot stationary.");
     
     float sum_gz = 0;
     for (int i = 0; i < samples; i++) {
@@ -110,8 +110,10 @@ float calibrate_gyro(int samples = 200) {
             
     float bias_gz = sum_gz / samples;
     
-    Serial.print("Calibration complete. Gyroscope Bias (Gz) = ");
-    Serial.println(bias_gz, 4);
+    if (debugMode) {
+      Serial.print("Calibration complete. Gyroscope Bias (Gz) = ");
+      Serial.println(bias_gz, 4);
+    }
 
     return bias_gz;
 }
@@ -143,7 +145,7 @@ void turn_until_angle(int target_angle) {
   }
   stop_motors();
 
-  Serial.println("Rotation finished");
+  if (debugMode) Serial.println("Rotation finished");
 }
 
 

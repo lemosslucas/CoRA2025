@@ -18,8 +18,8 @@ int SENSOR[5];
 int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
-const int velocidadeBaseDireita = 180;
-const int velocidadeBaseEsquerda = 180;
+const int velocidadeBaseDireita = 255;
+const int velocidadeBaseEsquerda = 255;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
 
@@ -39,7 +39,10 @@ float I = 0, P = 0, D = 0, PID = 0;
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
+
+// variaveis para debug
 bool debugMode = true;
+bool debugMotor = true;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

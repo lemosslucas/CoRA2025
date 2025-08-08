@@ -29,23 +29,21 @@ void setup() {
   pinMode(LED_LEFT, OUTPUT);
   pinMode(LED_RIGHT, OUTPUT);
 
-  Serial.print("cu");
   // Gyroscope initialization
   Wire.begin();
   mpu.begin();
-  Serial.print("cu2");
+
   // liga os motores
   setup_motor();
-  Serial.print("cu3");
+
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
-  Serial.print("cu4");
+
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
   digitalWrite(LED_RIGHT, HIGH);
   tempoLedLigou = millis();
   ledLigado = true;
-
 }
 
 /**
@@ -300,7 +298,7 @@ void loop() {
           stop_motors();
           
           // If the loop was exited because the time ran out, stop permanently.
-          Serial.println("Área de parada detectada. Robô parado.");
+          if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
           while(true);
         }
       } else {
@@ -310,10 +308,17 @@ void loop() {
       }
     }
   }
-  else {
-    // Get the output of the car's data
-    ler_sensores();
-    imprime_serial(); 
+  else { 
+    if (debugMotor) {
+      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      delay(3000);
+      stop_motors();
+      delay(1000);
+    } else {
+      // Get the output of the car's data
+      ler_sensores();
+      imprime_serial();
+    }
   }
 
   delay(5);
