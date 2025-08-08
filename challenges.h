@@ -9,7 +9,7 @@ int inverte_sensor(int SENSOR);
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]);
 int calcula_sensores_ativos(int SENSOR[]);
 void realiza_faixa_de_pedestre();
-float calibrate_gyro(int samples = 400);
+float calibrate_gyro(int samples = 200);
 void realiza_rotatoria(int saidaCurva, int saidaDesejada);
 void turn_until_angle(int target_angle);
 void realiza_marcha_re(int lado_da_curva);

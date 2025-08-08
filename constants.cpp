@@ -1,17 +1,17 @@
 #include "constants.h"
 
 // Pinos dos Sensores 
-const int sensor1_A1 = 14;
-const int sensor2_A2 = 15;
-const int sensor3_A3 = 17;
-const int sensor4_A4 = 18;
-const int sensor5_A5 = 19;
-const int sensor0_curva_A0 = 16;
-const int sensor6_curva_A6 = 20;
+const int sensor_curva_esquerda = 2;
+const int sensor_esquerda = 4;
+const int sensor_esquerda_central = 10;
+const int sensor_central = 17; //A3
+const int sensor_direita_central = 14; //A0
+const int sensor_direita = 15; //A1
+const int sensor_curva_direita = 16; //A2
 
 // Pinos dos LEDs
-const int LED_LEFT = 11;
-const int LED_RIGHT = 12;
+const int LED_LEFT = 8;
+const int LED_RIGHT = 7;
 
 // Variáveis de Estado dos Sensores
 int SENSOR[5];
@@ -46,3 +46,7 @@ float gyro_bias_z = 0.0;
 
 int estado_desafio_re = 0; // 0 = Normal, 1 = Viu a primeira marca, 2 = Viu a segunda marca
 int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
+
+int tempoLedLigou = 0;
+const int TEMPO_MAX_LED_LIGADO = 3000; // 3 segundos
+bool ledLigado = false;

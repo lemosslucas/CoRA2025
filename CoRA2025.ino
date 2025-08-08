@@ -15,26 +15,37 @@ MPU6050 mpu(Wire);
  * sets up the motors, and initializes serial communication.
  */
 void setup() {
+  // Initialize serial communication
+  Serial.begin(9600);
+  
   // Sensor initialization
-  pinMode(sensor1_A1, INPUT);
-  pinMode(sensor2_A2, INPUT);
-  pinMode(sensor3_A3, INPUT);
-  pinMode(sensor4_A4, INPUT);
-  pinMode(sensor5_A5, INPUT);
-  pinMode(sensor0_curva_A0, INPUT);
-  pinMode(sensor6_curva_A6, INPUT);
+  pinMode(sensor_esquerda, INPUT);
+  pinMode(sensor_esquerda_central, INPUT);
+  pinMode(sensor_central, INPUT);
+  pinMode(sensor_direita_central, INPUT);
+  pinMode(sensor_direita, INPUT);
+  pinMode(sensor_curva_esquerda, INPUT);
+  pinMode(sensor_curva_direita, INPUT);
   pinMode(LED_LEFT, OUTPUT);
   pinMode(LED_RIGHT, OUTPUT);
 
+  Serial.print("cu");
   // Gyroscope initialization
   Wire.begin();
   mpu.begin();
-
+  Serial.print("cu2");
+  // liga os motores
   setup_motor();
+  Serial.print("cu3");
+  // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
+  Serial.print("cu4");
+  // liga os leds da cara para indicar que o robô iniciou
+  digitalWrite(LED_LEFT, HIGH);
+  digitalWrite(LED_RIGHT, HIGH);
+  tempoLedLigou = millis();
+  ledLigado = true;
 
-  // Initialize serial communication
-  Serial.begin(9600);
 }
 
 /**
@@ -45,14 +56,14 @@ void setup() {
  * that the sensor has detected the line, and `BRANCO` (0) that it has not.
  */
 void ler_sensores() {
-  SENSOR[0] = digitalRead(sensor1_A1);
-  SENSOR[1] = digitalRead(sensor2_A2);
-  SENSOR[2] = digitalRead(sensor3_A3);
-  SENSOR[3] = digitalRead(sensor4_A4);
-  SENSOR[4] = digitalRead(sensor5_A5);
+  SENSOR[0] = digitalRead(sensor_esquerda);
+  SENSOR[1] = digitalRead(sensor_esquerda_central);
+  SENSOR[2] = digitalRead(sensor_central);
+  SENSOR[3] = digitalRead(sensor_direita_central);
+  SENSOR[4] = digitalRead(sensor_direita);
 
-  SENSOR_CURVA[0] = digitalRead(sensor0_curva_A0);
-  SENSOR_CURVA[1] = digitalRead(sensor6_curva_A6);
+  SENSOR_CURVA[0] = digitalRead(sensor_curva_esquerda);
+  SENSOR_CURVA[1] = digitalRead(sensor_curva_direita);
 }
 
 /**
@@ -198,27 +209,18 @@ int marcacoesDireita = 0, marcacoesEsquerda = 0;
 // Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
 
-/**
- * @brief Main function that executes the robot's control loop.
- * 
- * This loop is the robot's brain, continuously executing the following logic:
- * 1. Calculates the error relative to the line.
- * 2. Checks for a 90-degree turn.
- * 3. If a turn is detected:
- *    - Continues following the line while counting side markers (black squares).
- *    - Based on the number of markers, determines which challenge to execute:
- *      - Simple 90-degree turn.
- *      - Reverse gear maneuver.
- *      - Roundabout challenge.
- *    - Executes the corresponding maneuver and resets the counters.
- * 4. If no turn is detected:
- *    - If the line is lost (`erro == LINHA_NAO_DETECTADA`):
- *      - Checks if it's a pedestrian crossing and performs the crossing.
- *      - Otherwise, tries to find the line again by reversing for a while. If not found, it stops.
- *    - If the line is being followed, it calculates the PID and adjusts the movement.
- * 5. Prints telemetry data to the serial for debugging.
- */
+
 void loop() {  
+  // verifica se o led ta ligado
+  if (ledLigado) {
+    // verifica se o led ta ligado por mais de 3 segundos
+    if (millis() - tempoLedLigou > TEMPO_MAX_LED_LIGADO) {
+      digitalWrite(LED_LEFT, LOW);
+      digitalWrite(LED_RIGHT, LOW);
+      ledLigado = false;
+    }
+  }
+
   if (!debugMode) {
     // Calculate the car's error on the line
     calcula_erro();

@@ -98,7 +98,7 @@ void turn_90(int curvaEncontrada) {
  * @param samples The number of samples to collect for calibration.
  * @return float The calculated bias value for the Z-axis.
  */
-float calibrate_gyro(int samples = 400) {
+float calibrate_gyro(int samples = 200) {
     Serial.println("Calibrating gyroscope... Keep the robot stationary.");
     
     float sum_gz = 0;

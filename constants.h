@@ -28,13 +28,13 @@
 #define TIME_WITHOUT_LINE 3000
 
 //  Pinos dos Sensores 
-extern const int sensor1_A1;
-extern const int sensor2_A2;
-extern const int sensor3_A3;
-extern const int sensor4_A4;
-extern const int sensor5_A5;
-extern const int sensor0_curva_A0;
-extern const int sensor6_curva_A6;
+extern const int sensor_curva_esquerda;
+extern const int sensor_esquerda;
+extern const int sensor_esquerda_central;
+extern const int sensor_central;
+extern const int sensor_direita_central;
+extern const int sensor_direita;
+extern const int sensor_curva_direita;
 
 //  Pinos dos LEDs
 extern const int LED_LEFT;
@@ -70,4 +70,7 @@ extern float gyro_bias_z;
 extern int estado_desafio_re; 
 extern int lado_primeira_marca_re; 
 
+extern int tempoLedLigou;
+extern const int TEMPO_MAX_LED_LIGADO;
+extern bool ledLigado;
 #endif // CONSTANTS_H
