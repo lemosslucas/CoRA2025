@@ -203,7 +203,7 @@ void realiza_faixa_de_pedestre() {
   // Wait for the minimum time of 6 seconds to cross
   delay(6000);
   // Move forward to cross the track
-  run(255, 255);
+  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
   delay(2000); 
 }
 
@@ -220,7 +220,7 @@ void realiza_marcha_re(int lado_da_curva) {
   delay(500);
 
   // 2. Execute a ré por um tempo fixo
-  run_backward(200, 200);
+  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
   delay(1000);
 
   // 3. Pare novamente

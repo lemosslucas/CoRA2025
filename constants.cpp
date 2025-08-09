@@ -18,8 +18,8 @@ int SENSOR[5];
 int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
-const int velocidadeBaseDireita = 255;
-const int velocidadeBaseEsquerda = 255;
+const int velocidadeBaseDireita = 200;
+const int velocidadeBaseEsquerda = 220;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
 
@@ -28,7 +28,7 @@ int velocidadeEsquerda = 0;
 const float Kp = 150, Ki = 0, Kd = 0;
 
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
-const float Kcr = 150, Pcr = 0.05;
+//const float Kcr = 150, Pcr = 0.05;
 // const float Kp = (0.6 * Kcr), Ki = ((2 * Kp) / Pcr), Kd = ((Kp * Pcr) / 8);
 
 float erro = 0;
@@ -41,8 +41,8 @@ bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
 
 // variaveis para debug
-bool debugMode = true;
-bool debugMotor = true;
+bool debugMode = false;
+bool debugMotor = false;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

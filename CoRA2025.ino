@@ -283,7 +283,7 @@ void loop() {
           unsigned long tempoPerdido = millis();
           
           // Start reversing
-          run_backward(200, 200); 
+          run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda); 
 
           while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
             ler_sensores();
