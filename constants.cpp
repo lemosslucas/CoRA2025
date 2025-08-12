@@ -18,8 +18,10 @@ int SENSOR[5];
 int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
-const int velocidadeBaseDireita = 200;
-const int velocidadeBaseEsquerda = 220;
+const int OFFSET_MOTORS = 5;
+const int velocidadeBase = 220;
+const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
+const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
 

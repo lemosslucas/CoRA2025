@@ -16,7 +16,7 @@ MPU6050 mpu(Wire);
  */
 void setup() {
   // Initialize serial communication
-  Serial.begin(9600);
+  if (debugMode) { Serial.begin(9600);}
   
   // Sensor initialization
   pinMode(sensor_esquerda, INPUT);
