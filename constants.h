@@ -63,6 +63,8 @@ extern bool faixa_de_pedestre;
 extern int saidaDesejada;
 extern bool debugMode;
 extern bool debugMotor;
+extern bool debugSD;
+
 
 //  Variáveis do Giroscópio 
 extern MPU6050 mpu;

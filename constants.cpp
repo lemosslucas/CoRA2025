@@ -45,6 +45,7 @@ int saidaDesejada = 0;
 // variaveis para debug
 bool debugMode = false;
 bool debugMotor = false;
+bool debugSD = false;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

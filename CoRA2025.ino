@@ -3,8 +3,11 @@
 #include "constants.h"
 #include "CoRA2025.h"
 #include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
 
 MPU6050 mpu(Wire);
+File logFile;
 
 /**
  * @brief Configures and initializes the robot's components.
@@ -16,8 +19,8 @@ MPU6050 mpu(Wire);
  */
 void setup() {
   // Initialize serial communication
-  if (debugMode) { Serial.begin(9600);}
-  
+  if (debugMode) Serial.begin(9600);
+
   // Sensor initialization
   pinMode(sensor_esquerda, INPUT);
   pinMode(sensor_esquerda_central, INPUT);
@@ -39,6 +42,8 @@ void setup() {
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
 
+  if (debugSD) setup_sd();
+  
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
   digitalWrite(LED_RIGHT, HIGH);
@@ -201,12 +206,74 @@ int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
   return contagemAtual; 
 }
 
+/*
+*/
+void setup_sd() {
+   
+  if (!SD.begin(4)) {
+    if (debugMode) Serial.println("SD Card initialization failed!");
+    digitalWrite(LED_LEFT, HIGH);
+    ledLigado = true;
+    tempoLedLigou = millis();
+    return; // Stop if SD card is not present
+  }
+
+
+  // Create the base name for log files based on PID constants.
+  String baseName = "Kp" + String((int)Kp) + "_Ki" + String((int)Ki) + "_Kd" + String((int)Kd);
+  
+  int matchingFilesCount = 0;
+  File root = SD.open("/");
+  if (root) {
+    while (File entry = root.openNextFile()) {
+      if (!entry.isDirectory()) {
+        String entryName = String(entry.name());
+        // Check if the filename starts with our base name
+        if (entryName.startsWith(baseName)) {
+          matchingFilesCount++;
+        }
+      }
+      entry.close();
+    }
+    root.close();
+  } else {
+    if (debugMode) Serial.println("Could not open root directory.");
+    return;
+  }
+
+  // Create the new unique filename, e.g., Kp150_Ki0_Kd0_(1).txt
+  String newFileName = baseName + "_(" + String(matchingFilesCount + 1) + ").txt";
+
+  if (debugMode) Serial.print("Creating new log file: ");
+  if (debugMode) Serial.println(newFileName);
+
+  // Open the new file for writing.
+  logFile = SD.open(newFileName, FILE_WRITE);
+  logFile.println("Tempo,Erro")
+}
+
+unsigned long ultimoFlush = 0;
+
+void write_sd() {
+  if (logFile) {
+    logFile.print(millis());
+    logFile.print(",");
+    logFile.print(erro);
+    logFile.print(",");
+  }
+
+  if (debugSD && logFile && (millis() - ultimoFlush > 500)) {
+    logFile.flush();
+    ultimoFlush = millis();
+    if (debugMode) Serial.println("Log salvo no cartao (flush).");
+  }
+}
+
 // Initialize variables
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 
 // Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
-
 
 void loop() {  
   // verifica se o led ta ligado
@@ -223,6 +290,8 @@ void loop() {
     // Calculate the car's error on the line
     calcula_erro();
     
+    if (debugSD) write_sd();
+
     // Check if there is a 90-degree curve
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
 
