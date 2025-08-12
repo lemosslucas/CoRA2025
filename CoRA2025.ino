@@ -249,7 +249,7 @@ void setup_sd() {
 
   // Open the new file for writing.
   logFile = SD.open(newFileName, FILE_WRITE);
-  logFile.println("Tempo,Erro")
+  logFile.println("Tempo,Erro");
 }
 
 unsigned long ultimoFlush = 0;
