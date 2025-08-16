@@ -19,7 +19,7 @@ int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
 const int OFFSET_MOTORS = 5;
-const int velocidadeBase = 220;
+const int velocidadeBase = 200;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
@@ -27,7 +27,7 @@ int velocidadeEsquerda = 0;
 
 // Variáveis do PID
 // Constantes para o cálculo do PID
-const float Kp = 150, Ki = 0, Kd = 0;
+const float Kp = 100, Ki = 0, Kd = 0;
 
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
@@ -54,5 +54,5 @@ int estado_desafio_re = 0; // 0 = Normal, 1 = Viu a primeira marca, 2 = Viu a se
 int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
 
 int tempoLedLigou = 0;
-const int TEMPO_MAX_LED_LIGADO = 3000; // 3 segundos
+const int TEMPO_MAX_LED_LIGADO = 2000; // 3 segundos
 bool ledLigado = false;

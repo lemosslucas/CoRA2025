@@ -41,6 +41,7 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
+  //mpu.calcGyroOffsets(true);
 
   if (debugSD) setup_sd();
   
@@ -179,6 +180,8 @@ void imprime_serial() {
   Serial.print(velocidadeDireita);
   Serial.print(" Velocidade Esquerda: ");
   Serial.println(velocidadeEsquerda);
+  //turn_until_angle(90);
+
 }
 
 /**
@@ -275,11 +278,15 @@ int marcacoesDireita = 0, marcacoesEsquerda = 0;
 // Verification for marker counting, one for each side.
 bool jaContouEsquerda = false, jaContouDireita = false;
 
+// Counter for consecutive line loss and tolerance limit
+int contadorLinhaPerdida = 0;
+const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 3;
+
 void loop() {  
   // verifica se o led ta ligado
   if (ledLigado) {
     // verifica se o led ta ligado por mais de 3 segundos
-    if (millis() - tempoLedLigou > TEMPO_MAX_LED_LIGADO) {
+    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
       digitalWrite(LED_LEFT, LOW);
       digitalWrite(LED_RIGHT, LOW);
       ledLigado = false;
@@ -340,38 +347,54 @@ void loop() {
       stop_motors();
     } else {
       // If no curve is detected and the line is lost
-      if (erro == LINHA_NAO_DETECTADA) {      
-        PID = 0;
-        stop_motors();
+      if (erro == LINHA_NAO_DETECTADA) {
+        contadorLinhaPerdida++; // Increment counter for each consecutive loop without seeing the line
 
-        // Check if it is a pedestrian crossing
-        if (faixa_de_pedestre) {
-          realiza_faixa_de_pedestre();
-          faixa_de_pedestre = false;
-        } else {
-          unsigned long tempoPerdido = millis();
-          
-          // Start reversing
-          run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda); 
-
-          while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
-            ler_sensores();
-            if (calcula_sensores_ativos(SENSOR) > 0) {
-              // Line found. Stop reversing and exit the loop.
-              stop_motors();
-              break;
-            }
-            delay(5);
-          }
-
+        // Check if the tolerance limit has been exceeded
+        if (contadorLinhaPerdida >= LIMITE_TOLERANCIA_LINHA_PERDIDA) {
+          PID = 0;
           stop_motors();
-          
-          // If the loop was exited because the time ran out, stop permanently.
-          if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
-          while(true);
+
+          // Check if it is a pedestrian crossing
+          if (faixa_de_pedestre) {
+            realiza_faixa_de_pedestre();
+            faixa_de_pedestre = false;
+            contadorLinhaPerdida = 0; // Reset counter after handling the event
+          } else {
+            unsigned long tempoPerdido = millis();
+            bool linhaEncontradaRe = false;
+            
+            // Start reversing to find the line
+            run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda); 
+
+            while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
+              ler_sensores();
+              if (calcula_sensores_ativos(SENSOR) > 0) {
+                // Line found. Stop reversing and exit the loop.
+                stop_motors();
+                linhaEncontradaRe = true;
+                contadorLinhaPerdida = 0; // Reset counter
+                break;
+              }
+              delay(5);
+            }
+            // If the loop was exited because the time ran out, stop permanently.
+            if (!linhaEncontradaRe) {
+                stop_motors();
+                // liga os leds da cara para indicar que o robô parou
+                digitalWrite(LED_LEFT, HIGH);
+                digitalWrite(LED_RIGHT, HIGH);
+                tempoLedLigou = millis();
+                ledLigado = true;
+
+                if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
+                while(true);
+            }
+          }
         }
       } else {
-        // If the car detects the line, it follows the line
+        // If the car detects the line, it resets the counter and follows the line
+        contadorLinhaPerdida = 0;
         calcula_PID();
         ajusta_movimento();
       }
@@ -380,6 +403,10 @@ void loop() {
   else { 
     if (debugMotor) {
       run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      delay(3000);
+      stop_motors();
+      delay(1000);
+      run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
       delay(3000);
       stop_motors();
       delay(1000);

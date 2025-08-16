@@ -127,21 +127,23 @@ float calibrate_gyro(int samples = 200) {
  * 
  * @param target_angle The desired angle of rotation in degrees.
  */
-void turn_until_angle(int target_angle) {
+void turn_until_angle(int target_angle = 90) {
   unsigned long previous_time = millis();
   float angle_z = 0;
 
   while (abs(angle_z) < target_angle) {
-      mpu.update(); 
-      float angular_velocity_z = mpu.getGyroZ() - gyro_bias_z; 
+    mpu.update(); 
+    float angular_velocity_z = mpu.getGyroZ();
 
-      unsigned long current_time = millis();
-      float delta_time = (current_time - previous_time) / 1000.0; 
-      previous_time = current_time;
+    unsigned long current_time = millis();
+    float delta_time = (current_time - previous_time) / 1000.0; 
+    previous_time = current_time;
 
-      angle_z += angular_velocity_z * delta_time;
-      angle_z *= 10; // Correction factor
-      delay(10);
+    angle_z += angular_velocity_z * delta_time;
+
+    if (debugMode) Serial.println(angular_velocity_z);
+    //angle_z *= 10; // Correction factor
+    delay(10);
   }
   stop_motors();
 
