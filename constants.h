@@ -43,6 +43,7 @@ extern const int LED_RIGHT;
 //  Variáveis de Estado dos Sensores 
 extern int SENSOR[5];
 extern int SENSOR_CURVA[2];
+extern const int LIMITE_TOLERANCIA_LINHA_PERDIDA;
 
 //  Configurações de Velocidade e Motores 
 extern const int velocidadeBaseDireita;

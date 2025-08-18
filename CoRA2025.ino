@@ -173,8 +173,10 @@ void imprime_serial() {
 
   // Print Error, PID, and speed variables
   Serial.print("\tErro: ");
+  erro = calcula_erro();
   Serial.print(erro);
   Serial.print(" PID: ");
+  PID = calcula_PID();
   Serial.print(PID);
   Serial.print(" Velocidade Direita: ");
   Serial.print(velocidadeDireita);
@@ -280,7 +282,6 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 
 // Counter for consecutive line loss and tolerance limit
 int contadorLinhaPerdida = 0;
-const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 3;
 
 void loop() {  
   // verifica se o led ta ligado
@@ -349,51 +350,52 @@ void loop() {
       // If no curve is detected and the line is lost
       if (erro == LINHA_NAO_DETECTADA) {
         contadorLinhaPerdida++; // Increment counter for each consecutive loop without seeing the line
-
-        // Check if the tolerance limit has been exceeded
         if (contadorLinhaPerdida >= LIMITE_TOLERANCIA_LINHA_PERDIDA) {
+          // Se o limite foi atingido, inicia a rotina de recuperação (parar e ré)
           PID = 0;
           stop_motors();
 
-          // Check if it is a pedestrian crossing
+          // Verifica se é uma faixa de pedestre
           if (faixa_de_pedestre) {
             realiza_faixa_de_pedestre();
             faixa_de_pedestre = false;
-            contadorLinhaPerdida = 0; // Reset counter after handling the event
+            contadorLinhaPerdida = 0; // Reseta o contador
           } else {
+            // Se não for faixa de pedestre, tenta reencontrar a linha dando ré
             unsigned long tempoPerdido = millis();
             bool linhaEncontradaRe = false;
             
-            // Start reversing to find the line
-            run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda); 
-
+            run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
             while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
               ler_sensores();
               if (calcula_sensores_ativos(SENSOR) > 0) {
-                // Line found. Stop reversing and exit the loop.
                 stop_motors();
                 linhaEncontradaRe = true;
-                contadorLinhaPerdida = 0; // Reset counter
+                contadorLinhaPerdida = 0; // Reseta o contador
                 break;
               }
               delay(5);
             }
-            // If the loop was exited because the time ran out, stop permanently.
+            // Se o tempo esgotou e não encontrou a linha, para definitivamente
             if (!linhaEncontradaRe) {
                 stop_motors();
-                // liga os leds da cara para indicar que o robô parou
                 digitalWrite(LED_LEFT, HIGH);
                 digitalWrite(LED_RIGHT, HIGH);
                 tempoLedLigou = millis();
                 ledLigado = true;
-
                 if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
                 while(true);
             }
           }
+        } else {
+          P = erroAnterior; // Usa o erro anterior como base
+          I = constrain(I + P, -255, 255);
+          D = 0; // Zera o derivativo para evitar movimentos bruscos
+          PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
+          ajusta_movimento();
         }
       } else {
-        // If the car detects the line, it resets the counter and follows the line
+        // Se o robô detecta a linha normalmente, reseta o contador e segue a linha
         contadorLinhaPerdida = 0;
         calcula_PID();
         ajusta_movimento();
@@ -401,21 +403,26 @@ void loop() {
     }
   }
   else { 
-    if (debugMotor) {
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      delay(3000);
-      stop_motors();
-      delay(1000);
-      run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      delay(3000);
-      stop_motors();
-      delay(1000);
-    } else {
-      // Get the output of the car's data
-      ler_sensores();
-      imprime_serial();
-    }
+      if (debugMotor) {
+        //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        //delay(3000);
+        //stop_motors();
+        //delay(1000);
+        //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        //delay(3000);
+        //stop_motors();
+        //delay(1000);
+        turn_90(CURVA_DIREITA);
+        stop_motors();
+        delay(1000);
+        turn_90(CURVA_ESQUERDA);
+        stop_motors();
+        delay(1000);
+      } else {
+        // Get the output of the car's data
+        ler_sensores();
+        imprime_serial();
+      }
   }
-
   delay(5);
 }

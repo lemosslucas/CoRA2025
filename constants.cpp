@@ -3,11 +3,13 @@
 // Pinos dos Sensores 
 const int sensor_curva_esquerda = 2;
 const int sensor_esquerda = 4;
-const int sensor_esquerda_central = 10;
+const int sensor_esquerda_central = 20; //A7
 const int sensor_central = 17; //A3
 const int sensor_direita_central = 14; //A0
 const int sensor_direita = 15; //A1
 const int sensor_curva_direita = 16; //A2
+
+const int chipSelect = 10;
 
 // Pinos dos LEDs
 const int LED_LEFT = 8;
@@ -19,11 +21,12 @@ int SENSOR_CURVA[2];
 
 // Configurações de Velocidade e Motores
 const int OFFSET_MOTORS = 5;
-const int velocidadeBase = 200;
+const int velocidadeBase = 210;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
+const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 10;
 
 // Variáveis do PID
 // Constantes para o cálculo do PID
@@ -43,9 +46,9 @@ bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
 
 // variaveis para debug
-bool debugMode = false;
+bool debugMode = true;
 bool debugMotor = false;
-bool debugSD = false;
+bool debugSD = true;
 
 // Variáveis do Giroscópio
 float gyro_bias_z = 0.0;

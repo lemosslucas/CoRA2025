@@ -39,14 +39,16 @@ int calcula_sensores_ativos(int SENSOR[]) {
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  // Check for a left turn
-  if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == PRETO && SENSOR_CURVA[1] == PRETO
-  || calcula_sensores_ativos(SENSOR) == 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-    return CURVA_ESQUERDA;
-  } else if (SENSOR_CURVA[0] == PRETO && SENSOR[0] == PRETO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) { // Check for a right turn
-    return CURVA_DIREITA;
-  } else if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    return CURVA_EM_DUVIDA;
+  if (calcula_sensores_ativos(SENSOR) >= 3) {
+    if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+      return CURVA_EM_DUVIDA;
+    }
+    if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
+      return CURVA_DIREITA;//inversao
+    }
+    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+      return CURVA_ESQUERDA;//inversao
+    }
   }
 
   return CURVA_NAO_ENCONTRADA;
@@ -133,7 +135,7 @@ void turn_until_angle(int target_angle = 90) {
 
   while (abs(angle_z) < target_angle) {
     mpu.update(); 
-    float angular_velocity_z = mpu.getGyroZ();
+    float angular_velocity_z = mpu.getGyroZ() - gyro_bias_z;
 
     unsigned long current_time = millis();
     float delta_time = (current_time - previous_time) / 1000.0; 
@@ -142,7 +144,6 @@ void turn_until_angle(int target_angle = 90) {
     angle_z += angular_velocity_z * delta_time;
 
     if (debugMode) Serial.println(angular_velocity_z);
-    //angle_z *= 10; // Correction factor
     delay(10);
   }
   stop_motors();
