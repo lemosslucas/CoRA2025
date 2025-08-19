@@ -44,6 +44,7 @@ extern const int LED_RIGHT;
 extern int SENSOR[5];
 extern int SENSOR_CURVA[2];
 extern const int LIMITE_TOLERANCIA_LINHA_PERDIDA;
+extern const int chipSelect;
 
 //  Configurações de Velocidade e Motores 
 extern const int velocidadeBaseDireita;

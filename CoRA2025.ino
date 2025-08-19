@@ -173,10 +173,10 @@ void imprime_serial() {
 
   // Print Error, PID, and speed variables
   Serial.print("\tErro: ");
-  erro = calcula_erro();
+  calcula_erro();
   Serial.print(erro);
   Serial.print(" PID: ");
-  PID = calcula_PID();
+  calcula_PID();
   Serial.print(PID);
   Serial.print(" Velocidade Direita: ");
   Serial.print(velocidadeDireita);
@@ -214,63 +214,64 @@ int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
 /*
 */
 void setup_sd() {
-   
-  if (!SD.begin(4)) {
+  if (!SD.begin(chipSelect)) {
     if (debugMode) Serial.println("SD Card initialization failed!");
     digitalWrite(LED_LEFT, HIGH);
     ledLigado = true;
     tempoLedLigou = millis();
-    return; // Stop if SD card is not present
-  }
-
-
-  // Create the base name for log files based on PID constants.
-  String baseName = "Kp" + String((int)Kp) + "_Ki" + String((int)Ki) + "_Kd" + String((int)Kd);
-  
-  int matchingFilesCount = 0;
-  File root = SD.open("/");
-  if (root) {
-    while (File entry = root.openNextFile()) {
-      if (!entry.isDirectory()) {
-        String entryName = String(entry.name());
-        // Check if the filename starts with our base name
-        if (entryName.startsWith(baseName)) {
-          matchingFilesCount++;
-        }
-      }
-      entry.close();
-    }
-    root.close();
-  } else {
-    if (debugMode) Serial.println("Could not open root directory.");
     return;
   }
+  
+  String baseName = "L" + String((int)Kp); // Ex: "L100"
+  String newFileName;
+  
+  // 2. Procure o primeiro índice disponível
+  for (int i = 0; i < 100; i++) {
+    // Formato final será algo como "L100_0.TXT" (7 caracteres + extensão)
+    newFileName = baseName + "_" + String(i) + ".TXT"; 
+    
+    // 3. Verifica se o arquivo NÃO existe
+    if (!SD.exists(newFileName)) {
+      break; 
+    }
+  }
 
-  // Create the new unique filename, e.g., Kp150_Ki0_Kd0_(1).txt
-  String newFileName = baseName + "_(" + String(matchingFilesCount + 1) + ").txt";
+  if (debugMode) {
+    Serial.print("Creating new log file: ");
+    Serial.println(newFileName);
+  }
 
-  if (debugMode) Serial.print("Creating new log file: ");
-  if (debugMode) Serial.println(newFileName);
-
-  // Open the new file for writing.
+  // 4. Abre o novo arquivo para escrita.
   logFile = SD.open(newFileName, FILE_WRITE);
-  logFile.println("Tempo,Erro");
+
+  if (logFile) {
+    logFile.println("Time,Error"); 
+    logFile.flush(); 
+    if(debugMode) Serial.println("Log file created successfully.");
+  } else {
+    // Se falhar mesmo com o nome curto, o problema é outro.
+    if(debugMode) Serial.println("Failed to create the log file.");
+  }
 }
 
 unsigned long ultimoFlush = 0;
 
 void write_sd() {
+  // Verifica se o arquivo de log está realmente aberto
   if (logFile) {
+    // Escreve o tempo e o erro, separados por vírgula
     logFile.print(millis());
     logFile.print(",");
-    logFile.print(erro);
-    logFile.print(",");
-  }
-
-  if (debugSD && logFile && (millis() - ultimoFlush > 500)) {
-    logFile.flush();
-    ultimoFlush = millis();
-    if (debugMode) Serial.println("Log salvo no cartao (flush).");
+    
+    // Usa println() no último dado para adicionar a quebra de linha
+    logFile.println(erro); 
+    
+    // Força a escrita imediata para o cartão SD para evitar perda de dados
+    logFile.flush(); 
+    
+    if (debugMode) {
+      Serial.println("Log entry saved to SD.");
+    }
   }
 }
 
@@ -384,6 +385,7 @@ void loop() {
                 tempoLedLigou = millis();
                 ledLigado = true;
                 if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
+                if (debugSD) write_sd();
                 while(true);
             }
           }

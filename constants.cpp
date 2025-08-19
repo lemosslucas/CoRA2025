@@ -3,7 +3,7 @@
 // Pinos dos Sensores 
 const int sensor_curva_esquerda = 2;
 const int sensor_esquerda = 4;
-const int sensor_esquerda_central = 20; //A7
+const int sensor_esquerda_central = 8; 
 const int sensor_central = 17; //A3
 const int sensor_direita_central = 14; //A0
 const int sensor_direita = 15; //A1
@@ -12,8 +12,8 @@ const int sensor_curva_direita = 16; //A2
 const int chipSelect = 10;
 
 // Pinos dos LEDs
-const int LED_LEFT = 8;
-const int LED_RIGHT = 7;
+const int LED_LEFT = NULL;
+const int LED_RIGHT = NULL;
 
 // Variáveis de Estado dos Sensores
 int SENSOR[5];
@@ -46,7 +46,7 @@ bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
 
 // variaveis para debug
-bool debugMode = true;
+bool debugMode = false;
 bool debugMotor = false;
 bool debugSD = true;
 
