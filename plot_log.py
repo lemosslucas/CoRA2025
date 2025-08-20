@@ -2,6 +2,14 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
+import numpy as np
+from scipy.signal import find_peaks, savgol_filter
+
+
+def clear_screen():
+    """Clears the terminal screen for a cleaner user experience."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 
 def get_file_index(filepath):
     """Extracts the index number from a log filename (e.g., L100_5.TXT -> 5)."""
@@ -55,6 +63,7 @@ def select_file(files, action_prompt="analyze"):
     while True:
         try:
             choice = int(input("\nEnter your choice (number): "))
+            clear_screen()
             if 0 <= choice <= len(files):
                 if choice == 0:
                     return None
@@ -95,6 +104,10 @@ def calculate_pid_values(df, Kp, Ki, Kd):
         list: A list of calculated PID values.
     """
     pid_values = []
+    p_terms = []
+    i_terms = []
+    d_terms = []
+
     I = 0
     erroAnterior = 0
     OFFSET = 0 # Based on constants.h
@@ -106,12 +119,25 @@ def calculate_pid_values(df, Kp, Ki, Kd):
         I = max(-255, min(255, I))
         D = erro - erroAnterior
         
-        PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET
+        p_term_val = Kp * P
+        i_term_val = Ki * I
+        d_term_val = Kd * D
+
+        PID = p_term_val + i_term_val + d_term_val + OFFSET
+
+        p_terms.append(p_term_val)
+        i_terms.append(i_term_val)
+        d_terms.append(d_term_val)
         pid_values.append(PID)
         
         erroAnterior = erro
         
-    return pid_values
+    return pd.DataFrame({
+        'P_term': p_terms,
+        'I_term': i_terms,
+        'D_term': d_terms,
+        'PID': pid_values
+    })
 
 def plot_data(df, Kp, Ki, Kd):
     """
@@ -119,35 +145,110 @@ def plot_data(df, Kp, Ki, Kd):
     
     Args:
         df (pd.DataFrame): The DataFrame containing all data.
-        Kp (float): Proportional gain used.
-        Ki (float): Integral gain used.
-        Kd (float): Derivative gain used.
     """
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), sharex=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
     fig.suptitle(f"Analysis of PID Control with Kp={Kp}, Ki={Ki}, Kd={Kd}", fontsize=16)
 
+    # Use a Savitzky-Golay filter to smooth the error signal and show the underlying trend.
+    # This helps visualize the path the robot *would* take without high-frequency oscillations.
+    # window_length must be odd. A larger value means more smoothing.
+    # polyorder must be less than window_length. It's the order of the polynomial used to fit the samples.
+    try:
+        # Ensure window_length is not larger than the data size
+        window_length = min(51, len(df['Error']))
+        if window_length % 2 == 0: # Make it odd
+            window_length -= 1
+        
+        # The filter requires window_length > polyorder
+        if window_length > 3:
+             df['Smoothed_Error'] = savgol_filter(df['Error'], window_length=window_length, polyorder=3)
+        else:
+             df['Smoothed_Error'] = df['Error'] # Not enough data to filter, just copy the data
+    except Exception:
+        # Fallback if filtering fails for any reason
+        df['Smoothed_Error'] = df['Error']
+
     # Plot 1: Error vs. Time
-    ax1.plot(df['Time'], df['Error'], label='Error', color='blue')
-    ax1.set_title('Error vs. Time')
-    ax1.set_xlabel('Time (ms)')
+    ax1.plot(df['Time'], df['Error'], label='Error (Actual Path)', color='blue', alpha=0.4)
+    ax1.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='cyan', linewidth=2.5)
+    ax1.axhline(0, color='k', linestyle='--', linewidth=1, label='Ideal Path (Error=0)')
+    ax1.set_title('Error vs Time')
     ax1.set_ylabel('Error')
     ax1.set_ylim(-6, 6) # Set fixed y-axis for error
     ax1.grid(True)
     ax1.legend()
 
-    # Plot 2: PID vs. Time
-    ax2.plot(df['Time'], df['PID'], label='Simulated PID', color='red')
-    ax2.set_title('Simulated PID Output vs. Time')
-    ax2.set_xlabel('Time (ms)')
-    ax2.set_ylabel('PID Value')
-    # Set dynamic y-axis based on Kp. Handles Kp=0 case.
-    pid_limit = max(6 * Kp, 10) # Avoid a flat line if Kp is 0
-    ax2.set_ylim(-pid_limit, pid_limit)
+    # Plot 2: PID Component Contributions
+    ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='green', linewidth=2.5)
+    ax2.set_title('Smoothed_Error vs Time')
+    ax2.set_ylabel('Error Smoothed')
+    ax2.set_ylim(-6, 6) # Set fixed y-axis for error
     ax2.grid(True)
     ax2.legend()
 
+    # Plot 3: Total PID Output vs. Time
+    ax3.plot(df['Time'], df['PID'], label='Total PID Output', color='red')
+    ax3.set_title('PID Output vs Time')
+    ax3.set_xlabel('Time (ms)')
+    ax3.set_ylabel('PID Value')
+    ax3.grid(True)
+    ax3.legend()
+
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
+
+def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
+    """
+    Analyzes the performance based on error data and suggests PID tuning adjustments.
+    
+    Args:
+        df (pd.DataFrame): DataFrame with 'Time' and 'Error' columns.
+        Kp (float): The current Proportional gain.
+        Ki (float): The current Integral gain.
+        Kd (float): The current Derivative gain.
+    """
+    print("\n--- Análise de Desempenho & Sugestões de Ajuste ---")
+    
+    error = df['Error'].to_numpy()
+    
+    # 1. Calcular métricas de desempenho
+    mae = np.mean(np.abs(error)) # Erro Médio Absoluto (Mean Absolute Error)
+    max_overshoot = np.max(np.abs(error))
+    
+    print(f"Erro Médio Absoluto (MAE): {mae:.4f}")
+    print(f"Máximo Overshoot/Undershoot: {max_overshoot:.4f}")
+
+    # 2. Detectar oscilações usando a busca de picos
+    # Encontrar picos (overshoots) e vales (undershoots)
+    peaks, _ = find_peaks(error, prominence=0.5) # A proeminência ajuda a filtrar o ruído
+    troughs, _ = find_peaks(-error, prominence=0.5)
+    num_oscillations = len(peaks) + len(troughs)
+    
+    print(f"Detectadas {num_oscillations} oscilações significativas (picos/vales).")
+
+    # 3. Fornecer sugestões de ajuste com base em heurísticas
+    print("\nSugestões:")
+    
+    is_oscillating = num_oscillations > 5 # Limiar heurístico para "muita" oscilação
+    is_sluggish = mae > 1.0 and not is_oscillating # Heurística para resposta lenta/imprecisa
+    has_overshoot = max_overshoot > 2.0 # Heurística para overshoot significativo
+
+    if is_oscillating:
+        print("- O sistema parece estar oscilando.")
+        print(f"  - Tente reduzir o Kp (atual: {Kp}). Um bom ponto de partida pode ser 50-70% do valor atual.")
+        print(f"  - Considere aumentar o Kd (atual: {Kd}) para amortecer as oscilações.")
+    elif is_sluggish:
+        print("- A resposta parece lenta ou com um grande erro em estado estacionário.")
+        print(f"  - Tente aumentar o Kp (atual: {Kp}) para uma resposta mais rápida.")
+        print(f"  - Se houver um erro persistente, tente aumentar o Ki (atual: {Ki}) para eliminá-lo.")
+    elif has_overshoot:
+        print("- O sistema tem um overshoot significativo.")
+        print(f"  - Tente aumentar o Kd (atual: {Kd}) para reduzir o overshoot.")
+        print(f"  - Alternativamente, você poderia diminuir ligeiramente o Kp (atual: {Kp}).")
+    else:
+        print("- O desempenho parece razoável. O ajuste fino pode envolver pequenos ajustes em Kp, Ki e Kd.")
+
+    print("\nNota: Estas são sugestões gerais. Os valores ótimos dependem do robô e da pista específicos.")
 
 def run_analysis_flow(log_dir):
     """Handles the entire file analysis and plotting workflow."""
@@ -179,14 +280,19 @@ def run_analysis_flow(log_dir):
         ki, kd = get_remaining_pid_constants()
 
         df = pd.read_csv(selected_file)
-        df.name = selected_file # Store filename for plotting title
-        df['PID'] = calculate_pid_values(df, kp, ki, kd)
-
+        
+        # Calculate PID components and merge them into the main DataFrame
+        pid_df = calculate_pid_values(df, kp, ki, kd)
+        df = pd.concat([df, pid_df], axis=1)
+        
         plot_data(df, kp, ki, kd)
+
+        analyze_performance_and_suggest_pid(df, kp, ki, kd)
 
 def run_deletion_flow(log_dir):
     """Handles the file deletion workflow."""
     while True:
+        clear_screen()
         log_files = find_log_files(log_dir)
         if not log_files:
             print("\nNo .TXT log files found to delete.")
@@ -213,7 +319,8 @@ def run_deletion_flow(log_dir):
 def main():
     log_dir = 'E:\\'
     while True:
-        print("\n--- Main Menu ---")
+        clear_screen()
+        print("--- Main Menu ---")
         print("(1) - Analyze log file")
         print("(2) - Delete log files")
         print("(0) - Exit")
