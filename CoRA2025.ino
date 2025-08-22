@@ -385,7 +385,7 @@ void loop() {
                 tempoLedLigou = millis();
                 ledLigado = true;
                 if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
-                if (debugSD) write_sd();
+                if (debugSD) write_sd(); 
                 while(true);
             }
           }

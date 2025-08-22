@@ -316,13 +316,44 @@ def run_deletion_flow(log_dir):
         
         print("-" * 20)
 
+def change_log_directory(current_dir):
+    """
+    Prompts the user for a new directory path and validates it.
+
+    Args:
+        current_dir (str): The current log directory.
+
+    Returns:
+        str: The new, validated directory path, or the original path if input is invalid.
+    """
+    clear_screen()
+    print(f"The current log directory is: {current_dir}")
+    new_dir = input("Enter the new log directory path (or press Enter to cancel): ").strip()
+    new_dir = new_dir + (":\\" if not new_dir.endswith(":\\") else "")
+    
+    if not new_dir:
+        print("\nOperation cancelled.")
+        input("Press Enter to return to the main menu...")
+        return current_dir
+
+    if os.path.isdir(new_dir):
+        print(f"\nLog directory successfully changed to: {new_dir}")
+        input("Press Enter to return to the main menu...")
+        return new_dir
+    else:
+        print(f"\nError: The path '{new_dir}' is not a valid directory.")
+        input("Press Enter to return to the main menu...")
+        return current_dir
+
 def main():
     log_dir = 'E:\\'
     while True:
         clear_screen()
         print("--- Main Menu ---")
+        print(f"Current log directory: {log_dir}")
         print("(1) - Analyze log file")
         print("(2) - Delete log files")
+        print("(3) - Change log directory")
         print("(0) - Exit")
         
         choice = input("Enter your choice: ")
@@ -331,6 +362,8 @@ def main():
             run_analysis_flow(log_dir)
         elif choice == '2':
             run_deletion_flow(log_dir)
+        elif choice == '3':
+            log_dir = change_log_directory(log_dir)
         elif choice == '0':
             print("Exiting program.")
             break

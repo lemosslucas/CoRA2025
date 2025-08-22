@@ -26,11 +26,11 @@ const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
-const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 10;
+const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 5;
 
 // Variáveis do PID
 // Constantes para o cálculo do PID
-const float Kp = 100, Ki = 0, Kd = 0;
+const float Kp = 80, Ki = 0, Kd = 0;
 
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
