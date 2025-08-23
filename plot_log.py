@@ -5,6 +5,13 @@ from datetime import datetime
 import numpy as np
 from scipy.signal import find_peaks, savgol_filter
 
+# Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
+challenge_map = {
+    1: {'label': 'Curva Detectada', 'color': 'gold', 'marker': 'v', 'size': 100},
+    2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
+    3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120}
+}
+
 
 def clear_screen():
     """Clears the terminal screen for a cleaner user experience."""
@@ -178,7 +185,7 @@ def plot_data(df, Kp, Ki, Kd):
         df['Smoothed_Error'] = df['Error']
 
     # Plot 1: Error vs. Time
-    ax1.plot(df['Time'], df['Error'], label='Error (Actual Path)', color='blue', alpha=0.4)
+    ax1.plot(df['Time'], df['Error'],  marker='o', label='Error (Actual Path)', color='blue', alpha=0.4)
     ax1.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='cyan', linewidth=2.5)
     ax1.axhline(0, color='k', linestyle='--', linewidth=1, label='Ideal Path (Error=0)')
     ax1.set_title('Error vs Time')

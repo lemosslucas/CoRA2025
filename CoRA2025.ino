@@ -256,21 +256,23 @@ void setup_sd() {
 
 unsigned long ultimoFlush = 0;
 
-void write_sd() {
+void write_sd(int challenge_marker = 0) {
   // Verifica se o arquivo de log está realmente aberto
   if (logFile) {
-    // Escreve o tempo e o erro, separados por vírgula
+    // Escreve o tempo, o erro e o marcador de desafio, separados por vírgula
     logFile.print(millis());
+    logFile.print(",");
+    logFile.print(erro);
     logFile.print(",");
     
     // Usa println() no último dado para adicionar a quebra de linha
-    logFile.println(erro); 
+    logFile.println(challenge_marker); 
     
     // Força a escrita imediata para o cartão SD para evitar perda de dados
     logFile.flush(); 
     
     if (debugMode) {
-      Serial.println("Log entry saved to SD.");
+      if (challenge_marker != 0) Serial.println("Challenge event logged to SD.");
     }
   }
 }
@@ -302,7 +304,8 @@ void loop() {
     if (debugSD) write_sd();
 
     // Check if there is a 90-degree curve
-    int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+    //int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+    int saidaCurva = CURVA_NAO_ENCONTRADA;
 
     // Check if the curve was detected
     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
@@ -390,10 +393,10 @@ void loop() {
             }
           }
         } else {
-          P = erroAnterior; // Usa o erro anterior como base
-          I = constrain(I + P, -255, 255);
-          D = 0; // Zera o derivativo para evitar movimentos bruscos
-          PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
+          //P = erroAnterior; // Usa o erro anterior como base
+          //I = constrain(I + P, -255, 255);
+          //D = 0; // Zera o derivativo para evitar movimentos bruscos
+          //PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
           ajusta_movimento();
         }
       } else {
@@ -420,6 +423,18 @@ void loop() {
         turn_90(CURVA_ESQUERDA);
         stop_motors();
         delay(1000);
+  
+        run(200, 80);
+        delay(2000);
+        stop_motors();
+        delay(1000);
+  
+
+        run(80, 200);
+        delay(2000);
+        stop_motors();
+        delay(1000);
+
       } else {
         // Get the output of the car's data
         ler_sensores();
