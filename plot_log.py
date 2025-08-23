@@ -73,19 +73,28 @@ def select_file(files, action_prompt="analyze"):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
-def get_remaining_pid_constants():
+def get_pid_constants(default_kp):
     """
-    Prompts the user to enter Ki and Kd values.
+    Prompts the user to enter Kp, Ki, and Kd values.
+    For Kp, the user can accept a default value by pressing Enter.
     
+    Args:
+        default_kp (float): The default Kp value (usually from the filename).
+
     Returns:
-        tuple: A tuple containing (Ki, Kd) as floats.
+        tuple: A tuple containing (Kp, Ki, Kd) as floats.
     """
-    print("\nEnter the remaining PID constants for simulation (Ki and Kd).")
+    print("\nEnter the PID constants for simulation.")
     while True:
         try:
+            # Handle Kp - allow empty input to use default
+            kp_input = input(f"Enter Kp (default: {default_kp}, press Enter to use): ").strip()
+            kp = float(kp_input) if kp_input else default_kp
+
+            # Handle Ki and Kd - require input
             ki = float(input("Enter Ki: "))
             kd = float(input("Enter Kd: "))
-            return ki, kd
+            return kp, ki, kd
         except ValueError:
             print("Invalid input. Please enter numeric values for the constants.")
 
@@ -277,7 +286,7 @@ def run_analysis_flow(log_dir):
             print("Restarting file selection...\n")
             continue # Go to the next loop iteration, asking for a file again.
 
-        ki, kd = get_remaining_pid_constants()
+        kp, ki, kd = get_pid_constants(kp)
 
         df = pd.read_csv(selected_file)
         
@@ -346,7 +355,8 @@ def change_log_directory(current_dir):
         return current_dir
 
 def main():
-    log_dir = 'E:\\'
+    log_dir = "C:\\Users\\lucas\\Downloads\\logsSD"
+
     while True:
         clear_screen()
         print("--- Main Menu ---")
