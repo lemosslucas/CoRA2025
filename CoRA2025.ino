@@ -304,8 +304,7 @@ void loop() {
     if (debugSD) write_sd();
 
     // Check if there is a 90-degree curve
-    //int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-    int saidaCurva = CURVA_NAO_ENCONTRADA;
+    int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
 
     // Check if the curve was detected
     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 

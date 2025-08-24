@@ -63,6 +63,15 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
+
+  unsigned long startTime = millis();
+  // This timeout prevents the robot from getting stuck if it misreads the sensors.
+  while (calcula_sensores_ativos(SENSOR) >= 3 && (millis() - startTime < TIMEOUT_90_CURVE)) {
+    // Move straight forward, not using line-following logic here.
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores(); // Keep updating sensor values to check the condition.
+  }
+  
   // Stop the car for greater stability
   stop_motors();
   delay(200);
@@ -77,7 +86,7 @@ void turn_90(int curvaEncontrada) {
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_RIGHT, LOW);
-  } 
+  }
   /*
   else if (curvaEncontrada == CURVA_EM_DUVIDA) {
     // Side to be determined on competition day

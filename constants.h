@@ -78,4 +78,5 @@ extern int lado_primeira_marca_re;
 extern int tempoLedLigou;
 extern const int TEMPO_MAX_LED_LIGADO;
 extern bool ledLigado;
+extern const int TIMEOUT_90_CURVE = 1000;
 #endif // CONSTANTS_H
