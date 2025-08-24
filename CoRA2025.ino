@@ -245,7 +245,7 @@ void setup_sd() {
   logFile = SD.open(newFileName, FILE_WRITE);
 
   if (logFile) {
-    logFile.println("Time,Error"); 
+    logFile.println("Time,Error,Challenge"); 
     logFile.flush(); 
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -308,6 +308,7 @@ void loop() {
 
     // Check if the curve was detected
     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
+      if (debugSD) write_sd(1);
       // If there is a curve, store the number of markers
       while(erro != LINHA_NAO_DETECTADA) {
         // Update sensor values
@@ -360,6 +361,7 @@ void loop() {
 
           // Verifica se é uma faixa de pedestre
           if (faixa_de_pedestre) {
+            if (debugSD) write_sd(2); // Log challenge 2: Pedestrian crossing
             realiza_faixa_de_pedestre();
             faixa_de_pedestre = false;
             contadorLinhaPerdida = 0; // Reseta o contador
@@ -387,7 +389,7 @@ void loop() {
                 tempoLedLigou = millis();
                 ledLigado = true;
                 if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
-                if (debugSD) write_sd(); 
+                if (debugSD) write_sd(3); // Log challenge 3: Stop area
                 while(true);
             }
           }
@@ -403,6 +405,7 @@ void loop() {
         contadorLinhaPerdida = 0;
         calcula_PID();
         ajusta_movimento();
+        if (debugSD) write_sd(0);
       }
     }
   }

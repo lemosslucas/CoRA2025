@@ -18,21 +18,30 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
-def get_file_index(filepath):
-    """Extracts the index number from a log filename (e.g., L100_5.TXT -> 5)."""
+def get_sort_params(filepath):
+    """
+    Extracts Kp and index from a log filename (e.g., L90_1.TXT -> (90.0, 1)).
+    This is used as a key for sorting files.
+    """
     basename = os.path.basename(filepath)
     try:
-        # L100_5.TXT -> ['L100', '5.TXT'] -> '5.TXT' -> ['5', 'TXT'] -> '5' -> 5
-        index_str = basename.split('_')[1].split('.')[0]
-        return int(index_str)
+        # L90_1.TXT -> ['L90', '1.TXT']
+        parts = basename.split('_')
+        # 'L90' -> '90'
+        kp_str = parts[0].replace('L', '')
+        # '1.TXT' -> '1'
+        index_str = parts[1].split('.')[0]
+        kp = float(kp_str)
+        index = int(index_str)
+        return (kp, index)
     except (IndexError, ValueError):
-        # If the filename is not in the expected format, return a low value
-        # so it gets sorted to the end.
-        return -1
+        # For malformed filenames, return values that will sort them at the end.
+        return (float('inf'), -1)
 
 def find_log_files(directory):
     """
-    Finds all .TXT files in the specified directory, sorts them by index number (descending).
+    Finds all .TXT files in the specified directory, sorts them by Kp (ascending)
+    and then by index number (descending).
     
     Args:
         directory (str): The path to the directory to search.
@@ -42,8 +51,9 @@ def find_log_files(directory):
     """
     try:
         files = [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.TXT')]
-        # Sort files by the index in the filename, descending (e.g., L100_1.TXT before L100_0.TXT)
-        files.sort(key=get_file_index, reverse=True)
+        # Sort by Kp ascending, then by index descending.
+        # To sort index descending, we sort by its negative value.
+        files.sort(key=lambda f: (get_sort_params(f)[0], -get_sort_params(f)[1]))
         return files
     except FileNotFoundError:
         print(f"Error: The directory '{directory}' was not found.")
@@ -186,8 +196,31 @@ def plot_data(df, Kp, Ki, Kd):
 
     # Plot 1: Error vs. Time
     ax1.plot(df['Time'], df['Error'],  marker='o', label='Error (Actual Path)', color='blue', alpha=0.4)
-    ax1.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='cyan', linewidth=2.5)
+    ax1.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='green', linewidth=2.5)
     ax1.axhline(0, color='k', linestyle='--', linewidth=1, label='Ideal Path (Error=0)')
+
+    # Adiciona marcadores para desafios se a coluna 'Challenge' existir e tiver dados
+    if 'Challenge' in df.columns and not df[df['Challenge'] != 0].empty:
+        challenges = df[df['Challenge'] != 0]
+        plotted_labels = set()
+
+        for _, row in challenges.iterrows():
+            challenge_code = int(row['Challenge'])
+            if challenge_code in challenge_map:
+                props = challenge_map[challenge_code]
+                label = props['label']
+                
+                # Adiciona o rótulo à legenda apenas uma vez por tipo de desafio
+                current_label = label if label not in plotted_labels else ""
+                
+                ax1.scatter(row['Time'], row['Error'],
+                            label=current_label,
+                            color=props['color'],
+                            marker=props['marker'],
+                            s=props['size'],
+                            zorder=5) # Garante que os marcadores fiquem por cima
+                plotted_labels.add(label)
+
     ax1.set_title('Error vs Time')
     ax1.set_ylabel('Error')
     ax1.set_ylim(-6, 6) # Set fixed y-axis for error
@@ -295,12 +328,32 @@ def run_analysis_flow(log_dir):
 
         kp, ki, kd = get_pid_constants(kp)
 
-        df = pd.read_csv(selected_file)
-        
+        try:
+            # Lê o CSV, assumindo que a primeira linha é o cabeçalho (header=0).
+            # Isso resolve o TypeError ao impedir que o cabeçalho seja lido como dados.
+            # O pandas irá nomear as colunas como 'Time', 'Error', 'Challenge' a partir do arquivo.
+            df = pd.read_csv(selected_file, header=0)
+
+            # Garante que a coluna 'Challenge' exista, mesmo que o arquivo original
+            # tivesse apenas 2 colunas (o pandas não a criaria a partir do cabeçalho).
+            if 'Challenge' not in df.columns:
+                df['Challenge'] = 0
+
+            # Preenche valores ausentes (NaN) na coluna 'Challenge' com 0 e converte para inteiro.
+            # Esta é a forma moderna que corrige o FutureWarning e garante o tipo de dado correto.
+            df['Challenge'] = df['Challenge'].fillna(0).astype(int)
+        except pd.errors.EmptyDataError:
+            print(f"Error: O arquivo de log '{basename}' está vazio.")
+            input("Pressione Enter para continuar...")
+            continue
+        except Exception as e:
+            print(f"Ocorreu um erro ao ler o arquivo '{basename}': {e}")
+            input("Pressione Enter para continuar...")
+            continue
+
         # Calculate PID components and merge them into the main DataFrame
         pid_df = calculate_pid_values(df, kp, ki, kd)
         df = pd.concat([df, pid_df], axis=1)
-        
         plot_data(df, kp, ki, kd)
 
         analyze_performance_and_suggest_pid(df, kp, ki, kd)
