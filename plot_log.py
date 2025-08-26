@@ -415,7 +415,7 @@ def change_log_directory(current_dir):
         return current_dir
 
 def main():
-    log_dir = "C:\\Users\\lucas\\Downloads\\logsSD"
+    log_dir = "D:\\"
 
     while True:
         clear_screen()
