@@ -60,4 +60,9 @@ int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
 int tempoLedLigou = 0;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 bool ledLigado = false;
+
 const int TIMEOUT_90_CURVE = 1000;
+const int TOLERANCIA_CURVA_90 = 3;
+const int TOLERANCIA_INVERSAO = 3;
+const int TIMEOUT_FAIXA_PEDESTRE = 5000;
+bool inversaoAtiva = false;

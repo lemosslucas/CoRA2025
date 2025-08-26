@@ -25,32 +25,63 @@ int calcula_sensores_ativos(int SENSOR[]) {
 /**
  * @brief Determines if the robot should perform a 90-degree turn.
  * 
- * This function analyzes the state of the main and curve sensors to identify
- * a 90-degree turn pattern and determine its direction.
+ * Esta função analisa o estado dos sensores principais e de curva para identificar
+ * um padrão de curva de 90 graus. Para evitar falsos positivos devido a ruídos
+ * nos sensores, ela exige que uma curva seja detectada por um número mínimo de
+ * leituras consecutivas (3, por padrão) antes de confirmar a curva e retornar sua direção.
  * 
  * @param SENSOR Array containing the states of the main sensors.
  * @param SENSOR_CURVA Array containing the states of the curve detection sensors.
  * 
  * @return int An integer representing the turn direction:
- * - `CURVA_ESQUERDA` if a left turn is detected.
- * - `CURVA_DIREITA` if a right turn is detected.
- * - `CURVA_EM_DUVIDA` if the turn direction is uncertain.
- * - `CURVA_NAO_ENCONTRADA` if no turn is detected.
+ * - `CURVA_ESQUERDA` se uma curva à esquerda for confirmada.
+ * - `CURVA_DIREITA` se uma curva à direita for confirmada.
+ * - `CURVA_EM_DUVIDA` se a direção da curva for confirmada, mas incerta.
+ * - `CURVA_NAO_ENCONTRADA` se nenhuma curva for detectada ou o limiar de detecção não for atingido.
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
+  // Variáveis estáticas para manter o estado entre as chamadas e filtrar ruídos.
+  static int contador_curva = 0;
+  static int tipo_curva_anterior = CURVA_NAO_ENCONTRADA;
+  
+  int tipo_curva_atual = CURVA_NAO_ENCONTRADA;
+
+  // Verifica a condição inicial para uma curva (pelo menos 3 sensores ativos).
   if (calcula_sensores_ativos(SENSOR) >= 3) {
+    //Determina o tipo de curva com base nos sensores laterais.
     if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-      return CURVA_EM_DUVIDA;
-    }
-    if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-      return CURVA_DIREITA;//inversao
-    }
-    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
-      return CURVA_ESQUERDA;//inversao
+      tipo_curva_atual = CURVA_EM_DUVIDA;
+    } else if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
+      tipo_curva_atual = CURVA_DIREITA; //inversao
+    } else if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+      tipo_curva_atual = CURVA_ESQUERDA; //inversao
     }
   }
 
+  // Lógica de contagem para adicionar tolerância.
+  if (tipo_curva_atual != CURVA_NAO_ENCONTRADA && tipo_curva_atual == tipo_curva_anterior) {
+    // Se a mesma curva for detectada consecutivamente, incrementa o contador.
+    contador_curva++;
+  } else if (tipo_curva_atual != CURVA_NAO_ENCONTRADA) {
+    // Se uma nova curva for detectada, reinicia o contador para 1.
+    contador_curva = 1;
+  } else {
+    // Se nenhuma curva for detectada, zera o contador.
+    contador_curva = 0;
+  }
+
+  // Atualiza o estado da última curva detectada para a próxima iteração.
+  tipo_curva_anterior = tipo_curva_atual;
+
+  // Se o contador atingir o limiar, a curva é confirmada.
+  if (contador_curva >= TOLERANCIA_CURVA_90) {
+    contador_curva = 0; // Reinicia para a próxima detecção de curva.
+    tipo_curva_anterior = CURVA_NAO_ENCONTRADA; // Força uma reinicialização completa do estado.
+    return tipo_curva_atual;
+  }
+
+  // Se o limiar não foi atingido, considera que nenhuma curva foi encontrada.
   return CURVA_NAO_ENCONTRADA;
 }
 
@@ -87,16 +118,6 @@ void turn_90(int curvaEncontrada) {
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_RIGHT, LOW);
   }
-  /*
-  else if (curvaEncontrada == CURVA_EM_DUVIDA) {
-    // Side to be determined on competition day
-    
-    //turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-
-    turn_until_angle(ANGLE_CURVE);
-  }
-  */
 }
 
 
@@ -192,14 +213,28 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  if (calcula_sensores_ativos(SENSOR) == 1) {
-    // Invert the state of the sensors
+  static int i = 0;
+  static int j = 0;
+
+  if (calcula_sensores_ativos(SENSOR) == 1) i++; else i = 0;
+
+  if (!inversaoAtiva && i <= TOLERANCIA_INVERSAO) {
+    inversaoAtiva = true;
+  }
+
+  if (inversaoAtiva) {
     for (int i = 0; i < 5; i++) {
+      // Invert the state of the sensors
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }
+    if (calcula_sensores_ativos(SENSOR) >= 3) i++; else j = 0;
+
+    if (j >= 3) {inversaoAtiva = false; i=0; j=0;}
+
     // Return true to indicate an inversion occurred
     return true;
   }
+
   // Return false as no inversion was detected
   return false;
 }
@@ -213,10 +248,16 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
  */
 void realiza_faixa_de_pedestre() {
   // Wait for the minimum time of 6 seconds to cross
-  delay(6000);
-  // Move forward to cross the track
-  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(2000); 
+  delay(5200);
+
+  int inicio = millis();
+
+  while (TIMEOUT_FAIXA_PEDESTRE >= millis() - inicio) {
+    ler_sensores();
+    calcula_erro();
+    if (erro == LINHA_NAO_DETECTADA) erro = 0;
+    ajusta_movimento();
+  }
 }
 
 /**
