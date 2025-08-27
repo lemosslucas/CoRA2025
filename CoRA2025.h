@@ -12,5 +12,5 @@ void ler_sensores();
 void imprime_serial();
 void calcula_PID();
 int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou);
-
+void write_sd(int challenge_marker = 0);
 #endif // CORA2025_H

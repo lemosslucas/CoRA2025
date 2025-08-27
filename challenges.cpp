@@ -112,11 +112,13 @@ void turn_90(int curvaEncontrada) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_LEFT, LOW);
+    if (debugSD) write_sd(1);
   } else if (curvaEncontrada == CURVA_DIREITA) {
     digitalWrite(LED_RIGHT, HIGH);
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_RIGHT, LOW);
+    if (debugSD) write_sd(4);
   }
 }
 
@@ -213,11 +215,12 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
+  return false;
   static int i = 0;
   static int j = 0;
 
-  if (calcula_sensores_ativos(SENSOR) == 1) i++; else i = 0;
-
+  //if (calcula_sensores_ativos(SENSOR) == 1) i++; else i = 0;
+  if (calcula_sensores_ativos(SENSOR) == 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) i++; else i = 0;
   if (!inversaoAtiva && i <= TOLERANCIA_INVERSAO) {
     inversaoAtiva = true;
   }

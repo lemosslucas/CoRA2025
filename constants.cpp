@@ -30,7 +30,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 5;
 
 // Variáveis do PID
 // Constantes para o cálculo do PID
-const float Kp = 100, Ki = 0.5, Kd = 5;
+const float Kp = 100, Ki = 0, Kd = 5;
 
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
@@ -63,6 +63,6 @@ bool ledLigado = false;
 
 const int TIMEOUT_90_CURVE = 1000;
 const int TOLERANCIA_CURVA_90 = 3;
-const int TOLERANCIA_INVERSAO = 3;
+const int TOLERANCIA_INVERSAO = 10;
 const int TIMEOUT_FAIXA_PEDESTRE = 5000;
 bool inversaoAtiva = false;

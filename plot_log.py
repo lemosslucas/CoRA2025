@@ -7,9 +7,11 @@ from scipy.signal import find_peaks, savgol_filter
 
 # Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
 challenge_map = {
-    1: {'label': 'Curva Detectada', 'color': 'gold', 'marker': 'v', 'size': 100},
+    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
     2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
-    3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120}
+    3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
+    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
+    5: {'label': 'Recuperando a linha', 'color': 'pink', 'marker': 'v', 'size': 100},
 }
 
 

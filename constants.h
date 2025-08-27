@@ -79,6 +79,7 @@ extern int tempoLedLigou;
 extern const int TEMPO_MAX_LED_LIGADO;
 extern bool ledLigado;
 extern const int TIMEOUT_90_CURVE;
+extern const int TOLERANCIA_INVERSAO;
 extern const int TOLERANCIA_CURVA_90;
 extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;

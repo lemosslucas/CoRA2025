@@ -309,7 +309,7 @@ void loop() {
 
     // Check if the curve was detected
     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
-      if (debugSD) write_sd(1);
+      //if (debugSD) write_sd(1);
       // If there is a curve, store the number of markers
       while(erro != LINHA_NAO_DETECTADA) {
         // Update sensor values
@@ -374,6 +374,7 @@ void loop() {
             run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
             while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
               ler_sensores();
+              if (debugSD) write_sd(5);
               if (calcula_sensores_ativos(SENSOR) > 0) {
                 stop_motors();
                 linhaEncontradaRe = true;
