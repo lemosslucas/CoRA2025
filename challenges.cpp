@@ -370,48 +370,70 @@ int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
  * @param saidaCurva The direction to turn to enter the roundabout.
  * @param saidaDesejada The target exit number to take.
  */
-void realiza_rotatoria(int saidaCurva, int saidaDesejada){
+void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   if (debugSD) write_sd(8);
-  // Initialize the current exit count
-  int saidaAtual = 1;
+  
+  // Flag para controlar se estamos procurando uma saída ou esperando passar por uma já contada
+  bool aguardando_realinhar = false;
+  
+  // Contador para adicionar tolerância à detecção da saída
+  static int contador_deteccao_saida = 0;
+  const int TOLERANCIA_SAIDA = 2; // Exige 2 leituras consecutivas para confirmar a saída
 
-  // Perform a 90-degree turn to enter the roundabout
-  if (saidaCurva == CURVA_ESQUERDA) {
+  // Zera a contagem no início do desafio
+  int saidaAtual = 0;
+
+  // 1. Vira 90 graus para entrar na rotatória (usando o giroscópio)
+  if (saidaCurva == SAIDA_ESQUERDA) {
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(90);
-  } else if (saidaCurva == CURVA_DIREITA) {
+  } else if (saidaCurva == SAIDA_DIREITA) {
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(90);
   }
 
-  // Loop until the robot reaches the correct exit
-  while(saidaAtual != saidaDesejada) {
-    // Calculate error to stay on the line
+  // 2. Navega na rotatória até encontrar a saída correta
+  while (saidaAtual < saidaDesejada) {
+    // Lógica principal de seguir linha é executada em todos os ciclos
     calcula_erro();
     ajusta_movimento();
 
-    // Check which side the exit should be on (based on global variable)
-    if (saida_rotatoria == SAIDA_ESQUERDA) {
-      // Check for a marker on the right (indicating an exit)
-      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
-        delay(200);
-        // Update the current exit count
-        saidaAtual++;
+    // Assumindo que a rotatória é para a direita (sentido anti-horário)
+    bool saida_detectada = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO);
+    
+    // Condição que indica que o robô está de volta à curva principal
+    bool robo_realinhado = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
+
+    // Lógica principal de contagem
+    if (!aguardando_realinhar) {
+      // procura a saida
+      if (saida_detectada) {
+        contador_deteccao_saida++; // Incrementa contador se vir uma possível saída
+      } else {
+        contador_deteccao_saida = 0; // Zera se a condição falhar
       }
-    } else if(saida_rotatoria == SAIDA_DIREITA) {
-      // Check for a marker on the left (indicating an exit)
-      if (calcula_sensores_ativos(SENSOR) <= 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-        delay(200);
-        // Update the current exit count
+
+      // Se a saída foi vista por leituras suficientes, conta e ativa a flag de espera
+      if (contador_deteccao_saida >= TOLERANCIA_SAIDA) {
         saidaAtual++;
+        aguardando_realinhar = true; // Ativa a flag para parar de procurar
+        contador_deteccao_saida = 0; // Zera o contador para a próxima busca
+      }
+    } else {
+      // Se a flag está ativa, esperamos o robô se realinhar para desativá-la
+      if (robo_realinhado) {
+        aguardando_realinhar = false; // Desativa a flag, permitindo a busca pela próxima saída
       }
     }
   }
-  // Exit to the correct side of the roundabout
-  if (saida_rotatoria == SAIDA_ESQUERDA) {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+
+  // sai da rotatória, o robô já estará alinhado com a saída, basta virar 90 graus
+  if (saidaCurva == SAIDA_ESQUERDA) {
+      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(90);
   } else {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(90);
   }
 }
 
