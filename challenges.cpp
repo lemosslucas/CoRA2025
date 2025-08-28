@@ -78,6 +78,7 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
   if (contador_curva >= TOLERANCIA_CURVA_90) {
     contador_curva = 0; // Reinicia para a próxima detecção de curva.
     tipo_curva_anterior = CURVA_NAO_ENCONTRADA; // Força uma reinicialização completa do estado.
+    if (debugSD && tipo_curva_anterior==CURVA_EM_DUVIDA) write_sd(6);
     return tipo_curva_atual;
   }
 
@@ -108,17 +109,17 @@ void turn_90(int curvaEncontrada) {
   delay(200);
 
   if (curvaEncontrada == CURVA_ESQUERDA) {
+    if (debugSD) write_sd(1);
     digitalWrite(LED_LEFT, HIGH);
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_LEFT, LOW);
-    if (debugSD) write_sd(1);
   } else if (curvaEncontrada == CURVA_DIREITA) {
+    if (debugSD) write_sd(4);
     digitalWrite(LED_RIGHT, HIGH);
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     turn_until_angle(ANGLE_CURVE);
     digitalWrite(LED_RIGHT, LOW);
-    if (debugSD) write_sd(4);
   }
 }
 
@@ -215,30 +216,52 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  return false;
-  static int i = 0;
-  static int j = 0;
+  // Contadores estáticos para filtrar ruído, exigindo leituras consecutivas para mudar o estado.
+  static int contador_pista_branca = 0; // Conta leituras de pista com linha branca
+  static int contador_pista_preta = 0;  // Conta leituras de pista com linha preta
 
-  //if (calcula_sensores_ativos(SENSOR) == 1) i++; else i = 0;
-  if (calcula_sensores_ativos(SENSOR) == 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) i++; else i = 0;
-  if (!inversaoAtiva && i <= TOLERANCIA_INVERSAO) {
-    inversaoAtiva = true;
+  // Calcula o número de sensores ativos na
+  int sensores_ativos = calcula_sensores_ativos(SENSOR);
+
+  // Condição para pista com linha branca (precisa de inversão): <= 2 sensores ativos e não é uma curva
+  bool pista_branca_detectada = (sensores_ativos <= 2 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO);
+  // Condição para pista com linha preta (NÃO precisa de inversão): >= 3 sensores ativos e não é uma curva
+  bool pista_preta_detectada = (sensores_ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
+
+  if (!inversaoAtiva) { // Atualmente em pista de linha preta. Verifica se mudou para linha branca.
+    if (pista_branca_detectada) {
+      contador_pista_branca++;
+    } else {
+      contador_pista_branca = 0;
+    }
+
+    if (contador_pista_branca >= TOLERANCIA_INVERSAO) {
+      inversaoAtiva = true;
+      contador_pista_branca = 0; // Reseta contadores na transição
+      contador_pista_preta = 0;
+    }
+  } else { // Atualmente em pista de linha branca. Verifica se voltou para linha preta.
+    if (pista_preta_detectada) {
+      contador_pista_preta++;
+    } else {
+      contador_pista_preta = 0;
+    }
+
+    if (contador_pista_preta >= TOLERANCIA_INVERSAO) {
+      inversaoAtiva = false;
+      contador_pista_branca = 0; // Reseta contadores na transição
+      contador_pista_preta = 0;
+    }
   }
 
   if (inversaoAtiva) {
+    // Se a inversão estiver ativa, inverte os valores dos sensores para o resto do código.
     for (int i = 0; i < 5; i++) {
-      // Invert the state of the sensors
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }
-    if (calcula_sensores_ativos(SENSOR) >= 3) i++; else j = 0;
-
-    if (j >= 3) {inversaoAtiva = false; i=0; j=0;}
-
-    // Return true to indicate an inversion occurred
     return true;
   }
 
-  // Return false as no inversion was detected
   return false;
 }
 
@@ -250,6 +273,7 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
  * to cross the track.
  */
 void realiza_faixa_de_pedestre() {
+  if (debugSD) write_sd(2); 
   // Wait for the minimum time of 6 seconds to cross
   delay(5200);
 
@@ -272,6 +296,7 @@ void realiza_faixa_de_pedestre() {
  * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
  */
 void realiza_marcha_re(int lado_da_curva) {
+  if (debugSD) write_sd(7);
   stop_motors();
   delay(500);
 
@@ -346,6 +371,7 @@ int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
  * @param saidaDesejada The target exit number to take.
  */
 void realiza_rotatoria(int saidaCurva, int saidaDesejada){
+  if (debugSD) write_sd(8);
   // Initialize the current exit count
   int saidaAtual = 1;
 
@@ -387,4 +413,32 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada){
   } else {
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
   }
+}
+
+void test_motors() {
+    //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  //delay(3000);
+  //stop_motors();
+  //delay(1000);
+  //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  //delay(3000);
+  //stop_motors();
+  //delay(1000);
+  turn_90(CURVA_DIREITA);
+  stop_motors();
+  delay(1000);
+  turn_90(CURVA_ESQUERDA);
+  stop_motors();
+  delay(1000);
+
+  run(200, 80);
+  delay(2000);
+  stop_motors();
+  delay(1000);
+
+
+  run(80, 200);
+  delay(2000);
+  stop_motors();
+  delay(1000);
 }

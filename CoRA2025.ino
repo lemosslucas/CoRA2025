@@ -254,8 +254,6 @@ void setup_sd() {
   }
 }
 
-unsigned long ultimoFlush = 0;
-
 void write_sd(int challenge_marker = 0) {
   // Verifica se o arquivo de log está realmente aberto
   if (logFile) {
@@ -309,7 +307,6 @@ void loop() {
 
     // Check if the curve was detected
     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
-      //if (debugSD) write_sd(1);
       // If there is a curve, store the number of markers
       while(erro != LINHA_NAO_DETECTADA) {
         // Update sensor values
@@ -362,7 +359,6 @@ void loop() {
 
           // Verifica se é uma faixa de pedestre
           if (faixa_de_pedestre) {
-            if (debugSD) write_sd(2); // Log challenge 2: Pedestrian crossing
             realiza_faixa_de_pedestre();
             faixa_de_pedestre = false;
             contadorLinhaPerdida = 0; // Reseta o contador
@@ -371,10 +367,11 @@ void loop() {
             unsigned long tempoPerdido = millis();
             bool linhaEncontradaRe = false;
             
+            if (debugSD) write_sd(5); // perda de linha
+
             run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
             while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
               ler_sensores();
-              if (debugSD) write_sd(5);
               if (calcula_sensores_ativos(SENSOR) > 0) {
                 stop_motors();
                 linhaEncontradaRe = true;
@@ -396,10 +393,6 @@ void loop() {
             }
           }
         } else {
-          //P = erroAnterior; // Usa o erro anterior como base
-          //I = constrain(I + P, -255, 255);
-          //D = 0; // Zera o derivativo para evitar movimentos bruscos
-          //PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
           ajusta_movimento();
         }
       } else {
@@ -413,32 +406,7 @@ void loop() {
   }
   else { 
       if (debugMotor) {
-        //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        //delay(3000);
-        //stop_motors();
-        //delay(1000);
-        //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        //delay(3000);
-        //stop_motors();
-        //delay(1000);
-        turn_90(CURVA_DIREITA);
-        stop_motors();
-        delay(1000);
-        turn_90(CURVA_ESQUERDA);
-        stop_motors();
-        delay(1000);
-  
-        run(200, 80);
-        delay(2000);
-        stop_motors();
-        delay(1000);
-  
-
-        run(80, 200);
-        delay(2000);
-        stop_motors();
-        delay(1000);
-
+        test_motors();
       } else {
         // Get the output of the car's data
         ler_sensores();
