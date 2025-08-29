@@ -284,10 +284,11 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 // Counter for consecutive line loss and tolerance limit
 int contadorLinhaPerdida = 0;
 
+unsigned long tempoLinhaPerdida = 0;
+
 void loop() {  
   // verifica se o led ta ligado
   if (ledLigado) {
-    // verifica se o led ta ligado por mais de 3 segundos
     if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
       digitalWrite(LED_LEFT, LOW);
       digitalWrite(LED_RIGHT, LOW);
@@ -303,10 +304,8 @@ void loop() {
 
     // Check if there is a 90-degree curve
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-    //int saidaCurva = false;
 
-    // Check if the curve was detected
-    if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
+     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
       // If there is a curve, store the number of markers
       while(erro != LINHA_NAO_DETECTADA) {
         // Update sensor values
@@ -336,6 +335,7 @@ void loop() {
         marcacoesEsquerda = 0; jaContouEsquerda = false;
         marcacoesDireita = 0; jaContouDireita = false;
       } else{
+        /*
         saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
 
         int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
@@ -345,59 +345,57 @@ void loop() {
         // Reset the number of markers
         marcacoesEsquerda = 0; jaContouEsquerda = false;
         marcacoesDireita = 0; jaContouDireita = false;
+        */
       }
 
       stop_motors();
-    } else {
-      // If no curve is detected and the line is lost
+    } 
+    else {
       if (erro == LINHA_NAO_DETECTADA) {
-        contadorLinhaPerdida++; // Increment counter for each consecutive loop without seeing the line
-        if (contadorLinhaPerdida >= LIMITE_TOLERANCIA_LINHA_PERDIDA) {
-          // Se o limite foi atingido, inicia a rotina de recuperação (parar e ré)
+        if (tempoLinhaPerdida == 0) tempoLinhaPerdida = millis();
+
+        if (millis() - tempoLinhaPerdida >= 1500) { // 1 segundo sem linha
           PID = 0;
           stop_motors();
 
-          // Verifica se é uma faixa de pedestre
           if (faixa_de_pedestre) {
             realiza_faixa_de_pedestre();
             faixa_de_pedestre = false;
-            contadorLinhaPerdida = 0; // Reseta o contador
           } else {
-            // Se não for faixa de pedestre, tenta reencontrar a linha dando ré
+            // tenta recuperar com ré
             unsigned long tempoPerdido = millis();
             bool linhaEncontradaRe = false;
-            
-            if (debugSD) write_sd(5); // perda de linha
 
-            run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+            
             while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
+              if (debugSD) write_sd(5); // perda de linha
+              run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
               ler_sensores();
-              if (calcula_sensores_ativos(SENSOR) > 0) {
+              if (calcula_sensores_ativos(SENSOR) <= 4) {
                 stop_motors();
+                //if (debugSD) write_sd(8); // perda de linha
                 linhaEncontradaRe = true;
-                contadorLinhaPerdida = 0; // Reseta o contador
+                tempoLinhaPerdida = 0;
                 break;
               }
-              delay(5);
+
             }
-            // Se o tempo esgotou e não encontrou a linha, para definitivamente
+
             if (!linhaEncontradaRe) {
-                stop_motors();
-                digitalWrite(LED_LEFT, HIGH);
-                digitalWrite(LED_RIGHT, HIGH);
-                tempoLedLigou = millis();
-                ledLigado = true;
-                if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
-                if (debugSD) write_sd(3); // Log challenge 3: Stop area
-                while(true);
+              stop_motors();
+              digitalWrite(LED_LEFT, HIGH);
+              digitalWrite(LED_RIGHT, HIGH);
+              tempoLedLigou = millis();
+              ledLigado = true;
+              if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
+              if (debugSD) write_sd(3);
+              while(true); // trava o robô
             }
           }
-        } else {
-          ajusta_movimento();
         }
-      } else {
-        // Se o robô detecta a linha normalmente, reseta o contador e segue a linha
-        contadorLinhaPerdida = 0;
+      } 
+      else {
+        tempoLinhaPerdida = 0; // reset se voltou a ver linha
         calcula_PID();
         ajusta_movimento();
         if (debugSD) write_sd(0);
@@ -405,13 +403,12 @@ void loop() {
     }
   }
   else { 
-      if (debugMotor) {
-        test_motors();
-      } else {
-        // Get the output of the car's data
-        ler_sensores();
-        imprime_serial();
-      }
+    if (debugMotor) {
+      test_motors();
+    } else {
+      ler_sensores();
+      imprime_serial();
+    }
   }
   delay(5);
 }

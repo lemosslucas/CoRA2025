@@ -216,6 +216,7 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
+  return false;
   // Contadores estáticos para filtrar ruído, exigindo leituras consecutivas para mudar o estado.
   static int contador_pista_branca = 0; // Conta leituras de pista com linha branca
   static int contador_pista_preta = 0;  // Conta leituras de pista com linha preta
@@ -224,7 +225,7 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int sensores_ativos = calcula_sensores_ativos(SENSOR);
 
   // Condição para pista com linha branca (precisa de inversão): <= 2 sensores ativos e não é uma curva
-  bool pista_branca_detectada = (sensores_ativos <= 2 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO);
+  bool pista_branca_detectada = (sensores_ativos <= 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO);
   // Condição para pista com linha preta (NÃO precisa de inversão): >= 3 sensores ativos e não é uma curva
   bool pista_preta_detectada = (sensores_ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
 
@@ -446,20 +447,20 @@ void test_motors() {
   //delay(3000);
   //stop_motors();
   //delay(1000);
-  turn_90(CURVA_DIREITA);
-  stop_motors();
-  delay(1000);
-  turn_90(CURVA_ESQUERDA);
-  stop_motors();
-  delay(1000);
+  //turn_90(CURVA_DIREITA);
+  //stop_motors();
+ // delay(1000);
+  //turn_90(CURVA_ESQUERDA);
+ // stop_motors();
+  //delay(1000);
 
-  run(200, 80);
+  run(200, 200);
   delay(2000);
   stop_motors();
   delay(1000);
 
 
-  run(80, 200);
+  run(200, 200);
   delay(2000);
   stop_motors();
   delay(1000);

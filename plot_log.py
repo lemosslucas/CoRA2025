@@ -10,7 +10,7 @@ challenge_map = {
     4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
     2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
     3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
-    1: {'label': 'Curva Direita', 'color': 'gold', 'marker': 'v', 'size': 100},
+    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
     6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
     7: {'label': 'Ré', 'color': 'pink', 'marker': 'v', 'size': 100},
@@ -390,6 +390,36 @@ def run_deletion_flow(log_dir):
         
         print("-" * 20)
 
+
+def run_delete_all_flow(log_dir):
+    """Handles the deletion of all log files in the directory."""
+    clear_screen()
+    log_files = find_log_files(log_dir)
+    if not log_files:
+        print(f"\nNo .TXT log files found in '{log_dir}' to delete.")
+        input("Press Enter to return to the main menu...")
+        return
+
+    print(f"Found {len(log_files)} .TXT files in '{log_dir}'.")
+    try:
+        confirm = input(f"Are you sure you want to permanently delete ALL {len(log_files)} .TXT files in this directory? (y/n): ").lower()
+        if confirm == 'y':
+            deleted_count = 0
+            for file_path in log_files:
+                try:
+                    os.remove(file_path)
+                    deleted_count += 1
+                except Exception as e:
+                    basename = os.path.basename(file_path)
+                    print(f"Could not delete {basename}: {e}")
+            print(f"\nSuccessfully deleted {deleted_count} files.")
+        else:
+            print("\nDeletion cancelled.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    input("Press Enter to return to the main menu...")
+
 def change_log_directory(current_dir):
     """
     Prompts the user for a new directory path and validates it.
@@ -427,8 +457,9 @@ def main():
         print("--- Main Menu ---")
         print(f"Current log directory: {log_dir}")
         print("(1) - Analyze log file")
-        print("(2) - Delete log files")
+        print("(2) - Delete a specific log file")
         print("(3) - Change log directory")
+        print("(4) - Delete ALL .TXT files in directory")
         print("(0) - Exit")
         
         choice = input("Enter your choice: ")
@@ -439,6 +470,8 @@ def main():
             run_deletion_flow(log_dir)
         elif choice == '3':
             log_dir = change_log_directory(log_dir)
+        elif choice == '4':
+            run_delete_all_flow(log_dir)
         elif choice == '0':
             print("Exiting program.")
             break

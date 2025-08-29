@@ -26,11 +26,10 @@ const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
 int velocidadeEsquerda = 0;
-const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 5;
 
 // Variáveis do PID
 // Constantes para o cálculo do PID
-const float Kp = 100, Ki = 0, Kd = 5;
+const float Kp = 95, Ki = 0, Kd = 5;
 
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
@@ -60,9 +59,10 @@ int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
 int tempoLedLigou = 0;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 bool ledLigado = false;
+bool inversaoAtiva = false;
 
 const int TIMEOUT_90_CURVE = 1000;
-const int TOLERANCIA_CURVA_90 = 3;
-const int TOLERANCIA_INVERSAO = 10;
+const int TOLERANCIA_CURVA_90 = 2;
+const int TOLERANCIA_INVERSAO = 15;
 const int TIMEOUT_FAIXA_PEDESTRE = 5000;
-bool inversaoAtiva = false;
+const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 3;
