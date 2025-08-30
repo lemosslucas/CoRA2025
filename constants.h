@@ -84,5 +84,10 @@ extern const int TOLERANCIA_INVERSAO;
 extern const int TOLERANCIA_CURVA_90;
 extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
+extern const int TIMEOUT_MARCACAO;
+
+extern int marcacoesDireita, marcacoesEsquerda;
+
+extern bool jaContouEsquerda, jaContouDireita;
 
 #endif // CONSTANTS_H

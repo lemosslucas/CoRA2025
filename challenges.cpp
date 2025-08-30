@@ -438,6 +438,98 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   }
 }
 
+void verifica_estado_led() {
+  // verifica se o led ta ligado
+  if (ledLigado) {
+    // verifica se o led ta ligado por mais de 3 segundos
+    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
+      digitalWrite(LED_LEFT, LOW);
+      digitalWrite(LED_RIGHT, LOW);
+      ledLigado = false;
+    }
+  }
+}
+
+bool tenta_recuperar_linha() {
+  // Se não for faixa de pedestre, tenta reencontrar a linha dando ré
+  unsigned long tempoPerdido = millis();
+  bool linhaEncontradaRe = false;
+  
+  if (debugSD) write_sd(5); // perda de linha
+
+  while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
+    if (debugSD) write_sd(5); // perda de linha
+    run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores();
+    if (calcula_sensores_ativos(SENSOR) <= 4) {
+      stop_motors();
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Counts a marker (black square) using rising edge detection.
+ * 
+ * Increments the marker count only on the transition from WHITE to BLACK.
+ * A control flag (`jaContou`) is used to ensure that the same marker
+ * is not counted multiple times while the sensor remains over it.
+ * 
+ * @param estadoSensor The current state of the sensor (PRETO or BRANCO).
+ * @param contagemAtual The current value of the marker counter.
+ * @param jaContou Reference to a flag indicating if the current marker has already been counted.
+ * @return int The updated marker count.
+ */
+int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
+  if (estadoSensor == PRETO && !jaContou) {
+    // Activate the lock to prevent recounting
+    jaContou = true; 
+    return contagemAtual + 1;
+  } else if (estadoSensor == BRANCO) {
+    // Reset the lock when white is seen
+    jaContou = false; 
+  }
+  // Return the count unchanged
+  return contagemAtual; 
+}
+
+
+void analisa_marcacoes() {
+  unsigned long tempoUltimaDeteccao = millis();
+
+  // If there is a curve, store the number of markers
+  while(erro != LINHA_NAO_DETECTADA && (millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+    // Update sensor values
+    ler_sensores();
+
+    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+      // Se detectou, reseta o cronômetro do timeout
+      tempoUltimaDeteccao = millis();
+    }
+    
+    // conta as marcacoes
+    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
+    marcacoesDireita = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
+
+    // Ensure the robot stays on the line
+    calcula_erro();
+    calcula_PID();
+    ajusta_movimento();
+  }
+}
+
+void area_de_parada() {
+  stop_motors();
+  digitalWrite(LED_LEFT, HIGH);
+  digitalWrite(LED_RIGHT, HIGH);
+  tempoLedLigou = millis();
+  ledLigado = true;
+  if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
+  if (debugSD) write_sd(3); // Log challenge 3: Stop area
+  while(true);
+}
+
 void test_motors() {
     //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
   //delay(3000);

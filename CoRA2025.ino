@@ -186,33 +186,7 @@ void imprime_serial() {
 
 }
 
-/**
- * @brief Counts a marker (black square) using rising edge detection.
- * 
- * Increments the marker count only on the transition from WHITE to BLACK.
- * A control flag (`jaContou`) is used to ensure that the same marker
- * is not counted multiple times while the sensor remains over it.
- * 
- * @param estadoSensor The current state of the sensor (PRETO or BRANCO).
- * @param contagemAtual The current value of the marker counter.
- * @param jaContou Reference to a flag indicating if the current marker has already been counted.
- * @return int The updated marker count.
- */
-int contaMarcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
-  if (estadoSensor == PRETO && !jaContou) {
-    // Activate the lock to prevent recounting
-    jaContou = true; 
-    return contagemAtual + 1;
-  } else if (estadoSensor == BRANCO) {
-    // Reset the lock when white is seen
-    jaContou = false; 
-  }
-  // Return the count unchanged
-  return contagemAtual; 
-}
 
-/*
-*/
 void setup_sd() {
   if (!SD.begin(chipSelect)) {
     if (debugMode) Serial.println("SD Card initialization failed!");
@@ -275,137 +249,55 @@ void write_sd(int challenge_marker = 0) {
   }
 }
 
-// Initialize variables
-int marcacoesDireita = 0, marcacoesEsquerda = 0;
-
-// Verification for marker counting, one for each side.
-bool jaContouEsquerda = false, jaContouDireita = false;
-
-// Counter for consecutive line loss and tolerance limit
-int contadorLinhaPerdida = 0;
-
-unsigned long tempoLinhaPerdida = 0;
+unsigned int contadorLinhaPerdida = 0;
 
 void loop() {  
-  // verifica se o led ta ligado
-  if (ledLigado) {
-    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
-      digitalWrite(LED_LEFT, LOW);
-      digitalWrite(LED_RIGHT, LOW);
-      ledLigado = false;
-    }
-  }
+  // verifica o estado do led
+  verifica_estado_led();
 
   if (!debugMode) {
-    // Calculate the car's error on the line
-    calcula_erro();
-    
-    if (debugSD) write_sd();
-
-    // Check if there is a 90-degree curve
+    ler_sensores();
+    // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-
-     if (saidaCurva != CURVA_NAO_ENCONTRADA) { 
-      // If there is a curve, store the number of markers
-      while(erro != LINHA_NAO_DETECTADA) {
-        // Update sensor values
-        ler_sensores();
-        
-        marcacoesEsquerda = contaMarcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
-        marcacoesDireita = contaMarcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
-
-        // Ensure the robot stays on the line
-        calcula_erro();
+    
+    // se a curva nao foi encontrada
+    if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+      calcula_erro();
+      
+      if (erro != LINHA_NAO_DETECTADA) {
         calcula_PID();
         ajusta_movimento();
-      }
-      
-      // Determine which action should be taken
-      if (marcacoesEsquerda == 1 || marcacoesDireita == 1) {
-        turn_90(saidaCurva);
-        // Reset the number of markers
-        marcacoesEsquerda = 0; jaContouEsquerda = false;
-        marcacoesDireita = 0; jaContouDireita = false;
-      } else if ((marcacoesEsquerda > 1 && marcacoesEsquerda <= 2) 
-      || (marcacoesDireita > 1 && marcacoesDireita <= 2)) {
-        saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
-        realiza_marcha_re(saidaCurva);
 
-        // Reset the number of markers
-        marcacoesEsquerda = 0; jaContouEsquerda = false;
-        marcacoesDireita = 0; jaContouDireita = false;
-      } else{
-        /*
-        saidaCurva = determina_saida_curva(marcacoesEsquerda, marcacoesDireita);
-
-        int numeroDeMarcas = (saidaCurva == SAIDA_ESQUERDA) ? marcacoesEsquerda : marcacoesDireita;
-
-        realiza_rotatoria(saidaCurva, determina_saida_rotatoria(saidaCurva, numeroDeMarcas));
-        
-        // Reset the number of markers
-        marcacoesEsquerda = 0; jaContouEsquerda = false;
-        marcacoesDireita = 0; jaContouDireita = false;
-        */
-      }
-
-      stop_motors();
-    } 
-    else {
-      if (erro == LINHA_NAO_DETECTADA) {
-        if (tempoLinhaPerdida == 0) tempoLinhaPerdida = millis();
-
-        if (millis() - tempoLinhaPerdida >= 1500) { // 1 segundo sem linha
-          PID = 0;
+        if (debugSD) write_sd(0);
+        contadorLinhaPerdida = 0;
+      } else if (erro == LINHA_NAO_DETECTADA) {
+        contadorLinhaPerdida++;
+        if (contadorLinhaPerdida < LIMITE_TOLERANCIA_LINHA_PERDIDA) {
           stop_motors();
-
-          if (faixa_de_pedestre) {
-            realiza_faixa_de_pedestre();
-            faixa_de_pedestre = false;
-          } else {
-            // tenta recuperar com ré
-            unsigned long tempoPerdido = millis();
-            bool linhaEncontradaRe = false;
-
-            
-            while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
-              if (debugSD) write_sd(5); // perda de linha
-              run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-              ler_sensores();
-              if (calcula_sensores_ativos(SENSOR) <= 4) {
-                stop_motors();
-                //if (debugSD) write_sd(8); // perda de linha
-                linhaEncontradaRe = true;
-                tempoLinhaPerdida = 0;
-                break;
-              }
-
-            }
-
-            if (!linhaEncontradaRe) {
-              stop_motors();
-              digitalWrite(LED_LEFT, HIGH);
-              digitalWrite(LED_RIGHT, HIGH);
-              tempoLedLigou = millis();
-              ledLigado = true;
-              if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
-              if (debugSD) write_sd(3);
-              while(true); // trava o robô
-            }
+          // tenta recuperar a linha 
+          if (!tenta_recuperar_linha()) {
+            area_de_parada();
           }
         }
-      } 
-      else {
-        tempoLinhaPerdida = 0; // reset se voltou a ver linha
-        calcula_PID();
-        ajusta_movimento();
-        if (debugSD) write_sd(0);
       }
+    } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+      analisa_marcacoes();
+
+      if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+        turn_90(saidaCurva);
+      } 
+
+      // implementacao posterior da rotatoria e da marca re
+      //
+      //
+
+      stop_motors();
     }
-  }
-  else { 
+  } else { 
     if (debugMotor) {
       test_motors();
     } else {
+      // Get the output of the car's data
       ler_sensores();
       imprime_serial();
     }

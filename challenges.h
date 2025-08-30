@@ -16,5 +16,10 @@ void realiza_marcha_re(int lado_da_curva);
 int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita);
 int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas);
 void test_motors();
+void verifica_estado_led();
+bool tenta_recuperar_linha();
+void analisa_marcacoes();
+void area_de_parada();
+
 
 #endif
