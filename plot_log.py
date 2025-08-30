@@ -253,56 +253,80 @@ def plot_data(df, Kp, Ki, Kd):
 
 def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
     """
-    Analyzes the performance based on error data and suggests PID tuning adjustments.
+    Analisa o desempenho com base nos dados de erro e sugere ajustes de PID
+    seguindo a lógica da tabela de referência.
     
     Args:
-        df (pd.DataFrame): DataFrame with 'Time' and 'Error' columns.
-        Kp (float): The current Proportional gain.
-        Ki (float): The current Integral gain.
-        Kd (float): The current Derivative gain.
+        df (pd.DataFrame): DataFrame com as colunas 'Time' e 'Error'.
+        Kp (float): Ganho Proporcional atual.
+        Ki (float): Ganho Integral atual.
+        Kd (float): Ganho Derivativo atual.
     """
-    print("\n--- Análise de Desempenho & Sugestões de Ajuste ---")
+    print("\n--- Análise de Desempenho & Sugestões de Ajuste (Baseado na Tabela) ---")
     
     error = df['Error'].to_numpy()
     
     # 1. Calcular métricas de desempenho
-    mae = np.mean(np.abs(error)) # Erro Médio Absoluto (Mean Absolute Error)
-    max_overshoot = np.max(np.abs(error))
+    mae = np.mean(np.abs(error))  # Erro Médio Absoluto
+    max_abs_error = np.max(np.abs(error)) # Erro máximo absoluto (overshoot/undershoot)
     
-    print(f"Erro Médio Absoluto (MAE): {mae:.4f}")
-    print(f"Máximo Overshoot/Undershoot: {max_overshoot:.4f}")
-
     # 2. Detectar oscilações usando a busca de picos
     # Encontrar picos (overshoots) e vales (undershoots)
-    peaks, _ = find_peaks(error, prominence=0.5) # A proeminência ajuda a filtrar o ruído
+    peaks, _ = find_peaks(error, prominence=0.5)  # A proeminência ajuda a filtrar ruído
     troughs, _ = find_peaks(-error, prominence=0.5)
     num_oscillations = len(peaks) + len(troughs)
     
+    print(f"Erro Médio Absoluto (MAE): {mae:.4f}")
+    print(f"Máximo Erro Absoluto (Overshoot/Undershoot): {max_abs_error:.4f}")
     print(f"Detectadas {num_oscillations} oscilações significativas (picos/vales).")
 
-    # 3. Fornecer sugestões de ajuste com base em heurísticas
+    # 3. Fornecer sugestões de ajuste com base nas heurísticas da tabela
     print("\nSugestões:")
     
-    is_oscillating = num_oscillations > 5 # Limiar heurístico para "muita" oscilação
-    is_sluggish = mae > 1.0 and not is_oscillating # Heurística para resposta lenta/imprecisa
-    has_overshoot = max_overshoot > 2.0 # Heurística para overshoot significativo
+    suggestion_made = False
 
-    if is_oscillating:
-        print("- O sistema parece estar oscilando.")
-        print(f"  - Tente reduzir o Kp (atual: {Kp}). Um bom ponto de partida pode ser 50-70% do valor atual.")
-        print(f"  - Considere aumentar o Kd (atual: {Kd}) para amortecer as oscilações.")
-    elif is_sluggish:
-        print("- A resposta parece lenta ou com um grande erro em estado estacionário.")
-        print(f"  - Tente aumentar o Kp (atual: {Kp}) para uma resposta mais rápida.")
-        print(f"  - Se houver um erro persistente, tente aumentar o Ki (atual: {Ki}) para eliminá-lo.")
-    elif has_overshoot:
-        print("- O sistema tem um overshoot significativo.")
-        print(f"  - Tente aumentar o Kd (atual: {Kd}) para reduzir o overshoot.")
-        print(f"  - Alternativamente, você poderia diminuir ligeiramente o Kp (atual: {Kp}).")
-    else:
-        print("- O desempenho parece razoável. O ajuste fino pode envolver pequenos ajustes em Kp, Ki e Kd.")
+    # Comportamento: "Oscila muito em torno da linha (zig-zag)"
+    if num_oscillations > 8: # Limiar mais alto para oscilação clara
+        print("- Comportamento Detectado: O robô oscila muito em torno da linha (zig-zag).")
+        print(f"  - Ação Recomendada: Diminua o valor de Kp (atual: {Kp}). Um Kp muito alto causa reações exageradas.")
+        suggestion_made = True
 
-    print("\nNota: Estas são sugestões gerais. Os valores ótimos dependem do robô e da pista específicos.")
+    # Comportamento: "Corrige devagar e não consegue seguir bem a linha"
+    if mae > 1.2 and num_oscillations < 5:
+        print("- Comportamento Detectado: O robô corrige devagar e não segue a linha com precisão.")
+        print(f"  - Ação Recomendada: Aumente o valor de Kp (atual: {Kp}). Um Kp muito baixo gera correções fracas.")
+        suggestion_made = True
+
+    # Comportamento: "Erro pequeno persiste por muito tempo"
+    if mae > 0.2 and mae < 1.0 and not (num_oscillations > 5):
+        print("- Comportamento Detectado: Um erro pequeno parece persistir, não centralizando perfeitamente.")
+        print(f"  - Ação Recomendada: Aumente Ki (atual: {Ki}) para corrigir erros acumulados lentamente.")
+        suggestion_made = True
+
+    # Comportamento: "Começa a oscilar após um tempo seguindo bem" (Instabilidade do Integral)
+    if num_oscillations > 5 and Ki > 0: # Se está oscilando e Ki está ativo
+        print("- Causa Possível da Oscilação: O termo integral (Ki) pode estar acumulando erro demais.")
+        print(f"  - Ação Recomendada: Diminua Ki (atual: {Ki}) para reduzir a instabilidade causada pelo erro acumulado.")
+        suggestion_made = True
+
+    # Comportamento: "Reação muito abrupta a mudanças rápidas na linha"
+    if max_abs_error > 2.5: # Overshoot significativo
+        print("- Comportamento Detectado: Reação muito abrupta a mudanças, com overshoot/undershoot elevado.")
+        print(f"  - Ação Recomendada: Aumente Kd (atual: {Kd}) para suavizar a resposta e 'frear' mudanças bruscas.")
+        suggestion_made = True
+
+    # Comportamento: "Resposta lenta a mudanças rápidas"
+    if mae > 1.0 and Kd > 0:
+        # Esta é uma sugestão de ajuste fino, pode aparecer junto com a de "aumentar Kp".
+        print("- Ajuste Fino para Curvas: Se o robô parece 'amortecido' demais e lento para iniciar uma curva.")
+        print(f"  - Ação Recomendada: Considere diminuir Kd (atual: {Kd}) para permitir uma reação mais rápida a desvios.")
+        suggestion_made = True
+
+    # Mensagem padrão se nenhum comportamento claro for detectado
+    if not suggestion_made:
+        print("- O desempenho parece razoável. O ajuste fino pode envolver pequenas alterações nos parâmetros atuais.")
+
+    print("\nNota: Estas são sugestões gerais. Os valores ótimos dependem da dinâmica do robô e da pista.")
 
 def run_analysis_flow(log_dir):
     """Handles the entire file analysis and plotting workflow."""
