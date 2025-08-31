@@ -48,7 +48,7 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
   int tipo_curva_atual = CURVA_NAO_ENCONTRADA;
 
   // Verifica a condição inicial para uma curva (pelo menos 3 sensores ativos).
-  if (calcula_sensores_ativos(SENSOR) >= 3) {
+  if (calcula_sensores_ativos(SENSOR) >= 4) {
     //Determina o tipo de curva com base nos sensores laterais.
     if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
       tipo_curva_atual = CURVA_EM_DUVIDA;
@@ -451,21 +451,29 @@ void verifica_estado_led() {
 }
 
 bool tenta_recuperar_linha() {
-  // Se não for faixa de pedestre, tenta reencontrar a linha dando ré
   unsigned long tempoPerdido = millis();
-  bool linhaEncontradaRe = false;
-  
+  int leiturasValidas = 0;
+
   if (debugSD) write_sd(5); // perda de linha
 
   while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
-    if (debugSD) write_sd(5); // perda de linha
     run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    delay(50);
     ler_sensores();
-    if (calcula_sensores_ativos(SENSOR) <= 4) {
-      stop_motors();
-      return true;
+
+    // critério: sensor central detecta linha
+    if (SENSOR[1] == PRETO || SENSOR[2] == PRETO || SENSOR[3] == PRETO) {
+      leiturasValidas++;
+      if (leiturasValidas >= 3) { // exige 3 leituras consecutivas
+        stop_motors();
+        return true;
+      }
+    } else {
+      leiturasValidas = 0; // perdeu de novo
     }
   }
+
+  //stop_motors();
   return false;
 }
 
@@ -516,6 +524,7 @@ void analisa_marcacoes() {
     calcula_erro();
     calcula_PID();
     ajusta_movimento();
+    if (debugSD) write_sd(9);
   }
 }
 

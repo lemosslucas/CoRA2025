@@ -26,7 +26,7 @@
 #define SAIDA_DIREITA 1
 
 #define DELAY_LOST_LINE 1000
-#define TIME_WITHOUT_LINE 2000
+#define TIME_WITHOUT_LINE 200
 
 //  Pinos dos Sensores 
 extern const int sensor_curva_esquerda;

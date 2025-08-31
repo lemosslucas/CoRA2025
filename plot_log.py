@@ -14,7 +14,8 @@ challenge_map = {
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
     6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
     7: {'label': 'Ré', 'color': 'pink', 'marker': 'v', 'size': 100},
-    8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100}
+    8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
+    9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100}
 }
 
 
@@ -177,11 +178,11 @@ def plot_data(df, Kp, Ki, Kd):
     Args:
         df (pd.DataFrame): The DataFrame containing all data.
     """
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
     fig.suptitle(f"Analysis of PID Control with Kp={Kp}, Ki={Ki}, Kd={Kd}", fontsize=16)
 
     # Use a Savitzky-Golay filter to smooth the error signal and show the underlying trend.
-    # This helps visualize the path the robot *would* take without high-frequency oscillations.
+    # This helps visualize the path the robot would take without high-frequency oscillations.
     # window_length must be odd. A larger value means more smoothing.
     # polyorder must be less than window_length. It's the order of the polynomial used to fit the samples.
     try:
@@ -243,14 +244,21 @@ def plot_data(df, Kp, Ki, Kd):
     # Plot 3: Total PID Output vs. Time
     ax3.plot(df['Time'], df['PID'], label='Total PID Output', color='red')
     ax3.set_title('PID Output vs Time')
-    ax3.set_xlabel('Time (ms)')
     ax3.set_ylabel('PID Value')
     ax3.grid(True)
     ax3.legend()
 
+    # Plot 4: Motor Velocities vs. Time
+    ax4.plot(df['Time'], df['Velocidade Direita'], label='Velocidade Direita', color='purple')
+    ax4.plot(df['Time'], df['Velocidade Esquerda'], label='Velocidade Esquerda', color='orange')
+    ax4.set_title('Velocidade dos Motores vs. Tempo')
+    ax4.set_xlabel('Time (ms)')
+    ax4.set_ylabel('Velocidade')
+    ax4.grid(True)
+    ax4.legend()
+
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
-
 def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
     """
     Analisa o desempenho com base nos dados de erro e sugere ajustes de PID

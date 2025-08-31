@@ -55,9 +55,9 @@ void setup() {
 /**
  * @brief Reads the digital state of the line and curve sensors.
  * 
- * Updates the global arrays `SENSOR` and `SENSOR_CURVA` with the values
- * read from the corresponding digital pins. The value `PRETO` (1) indicates
- * that the sensor has detected the line, and `BRANCO` (0) that it has not.
+ * Updates the global arrays SENSOR and SENSOR_CURVA with the values
+ * read from the corresponding digital pins. The value PRETO (1) indicates
+ * that the sensor has detected the line, and BRANCO (0) that it has not.
  */
 void ler_sensores() {
   SENSOR[0] = digitalRead(sensor_esquerda);
@@ -74,7 +74,7 @@ void ler_sensores() {
  * @brief Adjusts the motor speeds based on the PID value.
  * 
  * Calculates the speed for each motor (right and left) by subtracting and
- * adding the PID value to the base speed. The `constrain` function ensures
+ * adding the PID value to the base speed. The constrain function ensures
  * that the speed values remain within the valid range (0-255).
  * It then drives the motors with the new speeds.
  */
@@ -91,11 +91,11 @@ void ajusta_movimento() {
  * @brief Calculates the robot's position error relative to the line.
  * 
  * First, it reads the sensors and checks if a track inversion (pedestrian
- * crossing) has occurred, updating the `faixa_de_pedestre` flag. Then, it
+ * crossing) has occurred, updating the faixa_de_pedestre flag. Then, it
  * calculates the error using a weighted average of the 5 line sensor readings.
  * The error indicates how far and to which side the robot is from the line's center.
  * If all sensors are on black, it considers the line lost.
- * The result is stored in the global variable `erro`.
+ * The result is stored in the global variable erro.
  */
 void calcula_erro() {
   // Update sensor values
@@ -219,7 +219,7 @@ void setup_sd() {
   logFile = SD.open(newFileName, FILE_WRITE);
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge"); 
+    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda"); 
     logFile.flush(); 
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -236,9 +236,13 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(erro);
     logFile.print(",");
-    
+    logFile.print(challenge_marker);
+    logFile.print(",");
+    logFile.print(velocidadeDireita);
+    logFile.print(",");
+    logFile.println(velocidadeEsquerda);
+
     // Usa println() no último dado para adicionar a quebra de linha
-    logFile.println(challenge_marker); 
     
     // Força a escrita imediata para o cartão SD para evitar perda de dados
     logFile.flush(); 
@@ -250,6 +254,11 @@ void write_sd(int challenge_marker = 0) {
 }
 
 unsigned int contadorLinhaPerdida = 0;
+unsigned long tempoSemLinha = 0;
+int tentativasRecuperacao = 0;
+const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
+unsigned long tempoUltimaRecuperacao = 0;
+const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 
 void loop() {  
   // verifica o estado do led
@@ -260,23 +269,48 @@ void loop() {
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
     
-    // se a curva nao foi encontrada
     if (saidaCurva == CURVA_NAO_ENCONTRADA) {
       calcula_erro();
       
       if (erro != LINHA_NAO_DETECTADA) {
+        // segue normalmente
         calcula_PID();
         ajusta_movimento();
 
+        if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
+          tentativasRecuperacao = 0;
+        }
+
         if (debugSD) write_sd(0);
-        contadorLinhaPerdida = 0;
+        contadorLinhaPerdida = 0; // reset se achou a linha
       } else if (erro == LINHA_NAO_DETECTADA) {
+        // perdeu a linha
+        if (contadorLinhaPerdida == 0) {
+          tempoSemLinha = millis(); // marca quando perdeu
+        }
         contadorLinhaPerdida++;
-        if (contadorLinhaPerdida < LIMITE_TOLERANCIA_LINHA_PERDIDA) {
+
+        // verifica se a perda já é relevante (por contagem OU tempo)
+        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 350) {
+              
           stop_motors();
-          // tenta recuperar a linha 
-          if (!tenta_recuperar_linha()) {
-            area_de_parada();
+
+          // tenta recuperar a linha
+          if (tenta_recuperar_linha()) {
+            contadorLinhaPerdida = 0; // recuperou com sucesso
+            tentativasRecuperacao++;
+            tempoUltimaRecuperacao = millis();
+            
+            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) {
+              run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+                delay(2000);  
+                // já tentou muitas vezes → para definitivo
+                if (debugSD) write_sd(3);
+                area_de_parada();
+            }
+          } else {
+            if (debugSD) write_sd(3); // Log challenge 3: Stop area
+            area_de_parada(); // não conseguiu → para
           }
         }
       }

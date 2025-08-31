@@ -36,12 +36,12 @@ const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 // --- Tolerâncias ---
 const int TOLERANCIA_CURVA_90 = 2;
 const int TOLERANCIA_INVERSAO = 15;
-const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 3;
+const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 60;
 
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = 95, Ki = 0, Kd = 5;
+const float Kp = 100, Ki = 0, Kd = 50;
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
 // const float Kp = (0.6 * Kcr), Ki = ((2 * Kp) / Pcr), Kd = ((Kp * Pcr) / 8);
@@ -72,4 +72,4 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = true;
+bool debugSD = false;
