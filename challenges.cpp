@@ -42,47 +42,38 @@ int calcula_sensores_ativos(int SENSOR[]) {
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
   // Variáveis estáticas para manter o estado entre as chamadas e filtrar ruídos.
-  static int contador_curva = 0;
+  static unsigned long inicioCurva = 0;
   static int tipo_curva_anterior = CURVA_NAO_ENCONTRADA;
   
   int tipo_curva_atual = CURVA_NAO_ENCONTRADA;
 
-  // Verifica a condição inicial para uma curva (pelo menos 3 sensores ativos).
-  if (calcula_sensores_ativos(SENSOR) >= 4) {
-    //Determina o tipo de curva com base nos sensores laterais.
-    if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-      tipo_curva_atual = CURVA_EM_DUVIDA;
-    } else if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-      tipo_curva_atual = CURVA_DIREITA; //inversao
-    } else if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
-      tipo_curva_atual = CURVA_ESQUERDA; //inversao
+  if ((SENSOR[3] == PRETO || SENSOR[4] == PRETO) && SENSOR_CURVA[1] == BRANCO && SENSOR_CURVA[0] == PRETO) {
+    tipo_curva_atual = CURVA_DIREITA;
+  }
+  // ---- Curva à esquerda ----
+  else if ((SENSOR[0] == PRETO || SENSOR[1] == PRETO) && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
+    tipo_curva_atual = CURVA_ESQUERDA;
+  }
+  // ---- Curva em dúvida (os dois lados abertos) ----
+  else if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+    tipo_curva_atual = CURVA_EM_DUVIDA;
+  }
+
+  if (tipo_curva_atual != CURVA_NAO_ENCONTRADA) {
+    if (tipo_curva_atual == tipo_curva_anterior) {
+      if (inicioCurva > 0 && millis() - inicioCurva > 120) {
+        inicioCurva = 0;
+        tipo_curva_anterior = CURVA_NAO_ENCONTRADA;
+        return tipo_curva_atual;
+      }
+    } else {
+      inicioCurva = millis();
     }
-  }
-
-  // Lógica de contagem para adicionar tolerância.
-  if (tipo_curva_atual != CURVA_NAO_ENCONTRADA && tipo_curva_atual == tipo_curva_anterior) {
-    // Se a mesma curva for detectada consecutivamente, incrementa o contador.
-    contador_curva++;
-  } else if (tipo_curva_atual != CURVA_NAO_ENCONTRADA) {
-    // Se uma nova curva for detectada, reinicia o contador para 1.
-    contador_curva = 1;
   } else {
-    // Se nenhuma curva for detectada, zera o contador.
-    contador_curva = 0;
+    inicioCurva = 0;
   }
 
-  // Atualiza o estado da última curva detectada para a próxima iteração.
   tipo_curva_anterior = tipo_curva_atual;
-
-  // Se o contador atingir o limiar, a curva é confirmada.
-  if (contador_curva >= TOLERANCIA_CURVA_90) {
-    contador_curva = 0; // Reinicia para a próxima detecção de curva.
-    tipo_curva_anterior = CURVA_NAO_ENCONTRADA; // Força uma reinicialização completa do estado.
-    if (debugSD && tipo_curva_anterior==CURVA_EM_DUVIDA) write_sd(6);
-    return tipo_curva_atual;
-  }
-
-  // Se o limiar não foi atingido, considera que nenhuma curva foi encontrada.
   return CURVA_NAO_ENCONTRADA;
 }
 

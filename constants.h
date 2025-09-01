@@ -26,7 +26,6 @@
 #define SAIDA_DIREITA 1
 
 #define DELAY_LOST_LINE 1000
-#define TIME_WITHOUT_LINE 200
 
 //  Pinos dos Sensores 
 extern const int sensor_curva_esquerda;
@@ -85,6 +84,7 @@ extern const int TOLERANCIA_CURVA_90;
 extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
 extern const int TIMEOUT_MARCACAO;
+extern const int TIME_WITHOUT_LINE;
 
 extern int marcacoesDireita, marcacoesEsquerda;
 
