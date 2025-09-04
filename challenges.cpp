@@ -3,6 +3,8 @@
 #include "constants.h"
 #include "CoRA2025.h"
 
+
+
 /**
  * @brief Calculates the number of active sensors.
  * 
