@@ -43,39 +43,16 @@ int calcula_sensores_ativos(int SENSOR[]) {
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  // Variáveis estáticas para manter o estado entre as chamadas e filtrar ruídos.
-  static unsigned long inicioCurva = 0;
-  static int tipo_curva_anterior = CURVA_NAO_ENCONTRADA;
-  
-  int tipo_curva_atual = CURVA_NAO_ENCONTRADA;
-
-  if ((SENSOR[3] == PRETO || SENSOR[4] == PRETO) && SENSOR_CURVA[1] == BRANCO && SENSOR_CURVA[0] == PRETO) {
-    tipo_curva_atual = CURVA_DIREITA;
-  }
-  // ---- Curva à esquerda ----
-  else if ((SENSOR[0] == PRETO || SENSOR[1] == PRETO) && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-    tipo_curva_atual = CURVA_ESQUERDA;
-  }
-  // ---- Curva em dúvida (os dois lados abertos) ----
-  else if (SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    tipo_curva_atual = CURVA_EM_DUVIDA;
+  // verifica se a curva é para esquerda
+  if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == PRETO && SENSOR_CURVA[1] == PRETO
+  || calcula_sensores_ativos(SENSOR) == 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
+    return CURVA_ESQUERDA;
+  } else if (SENSOR_CURVA[0] == PRETO && SENSOR[0] == PRETO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+    return CURVA_DIREITA;
+  } else if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+    return CURVA_EM_DUVIDA;
   }
 
-  if (tipo_curva_atual != CURVA_NAO_ENCONTRADA) {
-    if (tipo_curva_atual == tipo_curva_anterior) {
-      if (inicioCurva > 0 && millis() - inicioCurva > 120) {
-        inicioCurva = 0;
-        tipo_curva_anterior = CURVA_NAO_ENCONTRADA;
-        return tipo_curva_atual;
-      }
-    } else {
-      inicioCurva = millis();
-    }
-  } else {
-    inicioCurva = 0;
-  }
-
-  tipo_curva_anterior = tipo_curva_atual;
   return CURVA_NAO_ENCONTRADA;
 }
 
