@@ -71,4 +71,4 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = false;
+bool debugSD = true;
