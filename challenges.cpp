@@ -273,9 +273,9 @@ void realiza_faixa_de_pedestre() {
 
   while (TIMEOUT_FAIXA_PEDESTRE >= millis() - inicio) {
     ler_sensores();
-    calcula_erro();
+    //calcula_erro();
     if (erro == LINHA_NAO_DETECTADA) erro = 0;
-    ajusta_movimento();
+    //ajusta_movimento();
   }
 }
 
@@ -387,8 +387,8 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   // 2. Navega na rotatória até encontrar a saída correta
   while (saidaAtual < saidaDesejada) {
     // Lógica principal de seguir linha é executada em todos os ciclos
-    calcula_erro();
-    ajusta_movimento();
+    //calcula_erro();
+    //ajusta_movimento();
 
     // Assumindo que a rotatória é para a direita (sentido anti-horário)
     bool saida_detectada = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO);
@@ -512,9 +512,7 @@ void analisa_marcacoes() {
     marcacoesDireita = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
 
     // Ensure the robot stays on the line
-    calcula_erro();
-    calcula_PID();
-    ajusta_movimento();
+    controlador_on_off();
     if (debugSD) write_sd(9);
   }
 }
