@@ -40,7 +40,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 60;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = 100, Ki = 0, Kd = 50;
+const float Kp = 100, Ki = 0, Kd = 80;
 // Constantes para a utilização do método Ultimate Gain (Ziegler-Nichols)
 //const float Kcr = 150, Pcr = 0.05;
 // const float Kp = (0.6 * Kcr), Ki = ((2 * Kp) / Pcr), Kd = ((Kp * Pcr) / 8);
@@ -71,4 +71,4 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = false;
+bool debugSD = true;
