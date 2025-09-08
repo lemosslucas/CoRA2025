@@ -41,19 +41,42 @@ int calcula_sensores_ativos(int SENSOR[]) {
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  // verifica se a curva é para esquerda
-  if (SENSOR_CURVA[0] == BRANCO  && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == PRETO && SENSOR_CURVA[1] == PRETO
-  || calcula_sensores_ativos(SENSOR) == 3 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == PRETO) {
-    return CURVA_DIREITA;
-  } else if (SENSOR_CURVA[0] == PRETO && SENSOR[0] == PRETO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO  && SENSOR_CURVA[1] == BRANCO
- || calcula_sensores_ativos(SENSOR) == 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+  int sensores_pretos = calcula_sensores_ativos(SENSOR);
+
+  // Curva à direita
+  if (SENSOR_CURVA[0] == PRETO && sensores_pretos >= 2 && SENSOR_CURVA[1] == BRANCO) {
     return CURVA_ESQUERDA;
-  } else if (SENSOR_CURVA[0] == BRANCO && SENSOR[0] == BRANCO && SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+  }
+
+  // Curva à esquerda
+  if (SENSOR_CURVA[0] == BRANCO && sensores_pretos >= 2 && SENSOR_CURVA[1] == PRETO) {
+    return CURVA_DIREITA;
+  }
+
+  // Caso de dúvida (linha reta com marca estranha)
+  if (SENSOR[1] == PRETO && SENSOR[3] == PRETO && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
     return CURVA_EM_DUVIDA;
   }
 
   return CURVA_NAO_ENCONTRADA;
 }
+
+int calcula_posicao(int SENSOR[]) {
+  int pesos[5] = {-2, -1, 0, 1, 2};
+  int somaPesos = 0, somaAtivos = 0;
+
+  for (int i = 0; i < 5; i++) {
+    if (SENSOR[i] == PRETO) {
+      somaPesos += pesos[i];
+      somaAtivos++;
+    }
+  }
+
+  if (somaAtivos == 0) return 0; // Falha de leitura
+  return somaPesos / somaAtivos; // valor médio
+}
+
+
 /**
  * @brief Executes a 90-degree turn using the gyroscope.
  * 
@@ -66,29 +89,40 @@ void turn_90(int curvaEncontrada) {
 
   unsigned long startTime = millis();
   // This timeout prevents the robot from getting stuck if it misreads the sensors.
-  while (calcula_sensores_ativos(SENSOR) >= 3 && (millis() - startTime < TIMEOUT_90_CURVE)) {
+  while ((millis() - startTime < TIMEOUT_90_CURVE)) {
     // Move straight forward, not using line-following logic here.
     run(velocidadeBaseDireita, velocidadeBaseEsquerda);
     ler_sensores(); // Keep updating sensor values to check the condition.
   }
   
+  int posicao = calcula_posicao(SENSOR);
+
+  // Ajuste proporcional (ex.: 10 graus por posição)
+  int ajuste = posicao * 10;  
+
+  int anguloFinal = ANGLE_CURVE + ajuste;
+
   // Stop the car for greater stability
   stop_motors();
   delay(200);
 
+  erro = erroAnterior;
   if (curvaEncontrada == CURVA_ESQUERDA) {
     if (debugSD) write_sd(1);
     digitalWrite(LED_LEFT, HIGH);
     turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(ANGLE_CURVE);
+    turn_until_angle(anguloFinal); 
     digitalWrite(LED_LEFT, LOW);
   } else if (curvaEncontrada == CURVA_DIREITA) {
     if (debugSD) write_sd(4);
     digitalWrite(LED_RIGHT, HIGH);
     turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(ANGLE_CURVE);
+    turn_until_angle(anguloFinal);
     digitalWrite(LED_RIGHT, LOW);
   }
+
+  stop_motors();
+  delay(100); 
 }
 
 

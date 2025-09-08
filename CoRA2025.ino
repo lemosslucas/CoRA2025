@@ -219,7 +219,7 @@ void setup_sd() {
   logFile = SD.open(newFileName, FILE_WRITE);
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda"); 
+    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
     logFile.flush(); 
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -231,7 +231,7 @@ void setup_sd() {
 void write_sd(int challenge_marker = 0) {
   // Verifica se o arquivo de log está realmente aberto
   if (logFile) {
-    // Escreve o tempo, o erro e o marcador de desafio, separados por vírgula
+    // Escreve tempo, erro e marcador de desafio
     logFile.print(millis());
     logFile.print(",");
     logFile.print(erro);
@@ -240,11 +240,24 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(velocidadeDireita);
     logFile.print(",");
-    logFile.println(velocidadeEsquerda);
+    logFile.print(velocidadeEsquerda);
 
-    // Usa println() no último dado para adicionar a quebra de linha
-    
-    // Força a escrita imediata para o cartão SD para evitar perda de dados
+    // Adiciona valores dos 5 sensores da linha
+    for (int i = 0; i < 5; i++) {
+      logFile.print(",");
+      logFile.print(SENSOR[i]);
+    }
+
+    // Adiciona sensores de curva
+    for (int i = 0; i < 2; i++) {
+      logFile.print(",");
+      logFile.print(SENSOR_CURVA[i]);
+    }
+
+    // Quebra de linha no final
+    logFile.println();
+
+    // Força escrita imediata
     logFile.flush(); 
     
     if (debugMode) {
@@ -253,12 +266,16 @@ void write_sd(int challenge_marker = 0) {
   }
 }
 
+
 unsigned int contadorLinhaPerdida = 0;
 unsigned long tempoSemLinha = 0;
 int tentativasRecuperacao = 0;
 const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
 unsigned long tempoUltimaRecuperacao = 0;
 const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
+
+unsigned long delay_tempo_ult_dec_curva = 0;
+bool nao_detectar_curva = false;
 
 void loop() {  
   // verifica o estado do led
@@ -291,7 +308,7 @@ void loop() {
         contadorLinhaPerdida++;
 
         // verifica se a perda já é relevante (por contagem OU tempo)
-        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 350) {
+        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
               
           stop_motors();
 
@@ -303,23 +320,34 @@ void loop() {
             
             if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) {
               run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-                delay(2000);  
-                // já tentou muitas vezes → para definitivo
-                if (debugSD) write_sd(3);
-                area_de_parada();
+              delay(1500);  
+              // já tentou muitas vezes → para definitivo
+              erro = erroAnterior;
+              if (debugSD) write_sd(3);
+              area_de_parada();
             }
           } else {
+            erro = erroAnterior;
             if (debugSD) write_sd(3); // Log challenge 3: Stop area
             area_de_parada(); // não conseguiu → para
           }
         }
       }
     } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      analisa_marcacoes();
+      if (nao_detectar_curva) {
+        delay_tempo_ult_dec_curva = millis();
+      }
 
+      turn_90(saidaCurva);
+      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      delay(200);
+      
+      /*
+      analisa_marcacoes();
       if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
         turn_90(saidaCurva);
       } 
+      */
 
       // implementacao posterior da rotatoria e da marca re
       //
