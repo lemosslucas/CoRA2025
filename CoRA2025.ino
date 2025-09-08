@@ -102,7 +102,7 @@ void calcula_erro() {
   ler_sensores();
 
   // Check for inversion, signaling a pedestrian crossing
-  if (verifica_inversao(SENSOR, SENSOR_CURVA)) {
+  if (verifica_inversao(SENSOR, SENSOR_CURVA) && !faixa_de_pedestre) {
     faixa_de_pedestre = true;
   }
 
@@ -288,6 +288,14 @@ void loop() {
     
     if (saidaCurva == CURVA_NAO_ENCONTRADA) {
       calcula_erro();
+      
+      if (faixa_de_pedestre) {
+        if (erro == LINHA_NAO_DETECTADA) {
+          realiza_faixa_de_pedestre();
+          faixa_de_pedestre = false;
+          if (debugSD) write_sd(2);
+        }
+      }
       
       if (erro != LINHA_NAO_DETECTADA) {
         // segue normalmente

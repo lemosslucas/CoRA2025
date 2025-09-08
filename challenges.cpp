@@ -220,44 +220,9 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  return false;
-  // Contadores estáticos para filtrar ruído, exigindo leituras consecutivas para mudar o estado.
-  static int contador_pista_branca = 0; // Conta leituras de pista com linha branca
-  static int contador_pista_preta = 0;  // Conta leituras de pista com linha preta
-
-  // Calcula o número de sensores ativos na
-  int sensores_ativos = calcula_sensores_ativos(SENSOR);
-
-  // Condição para pista com linha branca (precisa de inversão): <= 2 sensores ativos e não é uma curva
-  bool pista_branca_detectada = (sensores_ativos <= 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO);
-  // Condição para pista com linha preta (NÃO precisa de inversão): >= 3 sensores ativos e não é uma curva
-  bool pista_preta_detectada = (sensores_ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
-
-  if (!inversaoAtiva) { // Atualmente em pista de linha preta. Verifica se mudou para linha branca.
-    if (pista_branca_detectada) {
-      contador_pista_branca++;
-    } else {
-      contador_pista_branca = 0;
-    }
-
-    if (contador_pista_branca >= TOLERANCIA_INVERSAO) {
-      inversaoAtiva = true;
-      contador_pista_branca = 0; // Reseta contadores na transição
-      contador_pista_preta = 0;
-    }
-  } else { // Atualmente em pista de linha branca. Verifica se voltou para linha preta.
-    if (pista_preta_detectada) {
-      contador_pista_preta++;
-    } else {
-      contador_pista_preta = 0;
-    }
-
-    if (contador_pista_preta >= TOLERANCIA_INVERSAO) {
-      inversaoAtiva = false;
-      contador_pista_branca = 0; // Reseta contadores na transição
-      contador_pista_preta = 0;
-    }
-  }
+  if (SENSOR[2] == PRETO && calcula_sensores_ativos <= 1) {
+    inversaoAtiva = true;
+  } 
 
   if (inversaoAtiva) {
     // Se a inversão estiver ativa, inverte os valores dos sensores para o resto do código.
@@ -278,17 +243,22 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
  * to cross the track.
  */
 void realiza_faixa_de_pedestre() {
+  stop_motors();
   if (debugSD) write_sd(2); 
   // Wait for the minimum time of 6 seconds to cross
-  delay(5200);
+  delay(TIMEOUT_FAIXA_PEDESTRE);
 
   int inicio = millis();
 
-  while (TIMEOUT_FAIXA_PEDESTRE >= millis() - inicio) {
+  while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
     ler_sensores();
-    //calcula_erro();
+    calcula_erro();
     if (erro == LINHA_NAO_DETECTADA) erro = 0;
-    //ajusta_movimento();
+    int posicao = calcula_posicao(SENSOR);
+    int ajuste = posicao * 10;  
+
+    erro = ajuste / 10;
+    ajusta_movimento();
   }
 }
 
@@ -525,7 +495,6 @@ void analisa_marcacoes() {
     marcacoesDireita = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
 
     // Ensure the robot stays on the line
-    controlador_on_off();
     if (debugSD) write_sd(9);
   }
 }

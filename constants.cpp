@@ -28,10 +28,13 @@ int velocidadeEsquerda = 0;
 
 // --- Timeouts ---
 const int TIMEOUT_90_CURVE = 700;
-const int TIMEOUT_FAIXA_PEDESTRE = 5000;
+const int TIMEOUT_FAIXA_PEDESTRE = 5200;
 const int TIMEOUT_MARCACAO = 1000;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
+const int TIMEOUT_INVERSAO = 2000;
+const int TIMEOUT_PERIODO_FAIXA = 3000;
+
 
 // --- Tolerâncias ---
 const int TOLERANCIA_CURVA_90 = 2;

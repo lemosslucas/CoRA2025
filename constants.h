@@ -85,6 +85,8 @@ extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
 extern const int TIMEOUT_MARCACAO;
 extern const int TIME_WITHOUT_LINE;
+extern const int TIMEOUT_INVERSAO;
+extern const int TIMEOUT_PERIODO_FAIXA;
 
 extern int marcacoesDireita, marcacoesEsquerda;
 
