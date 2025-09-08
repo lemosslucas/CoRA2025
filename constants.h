@@ -19,7 +19,7 @@
 #define CURVA_DIREITA 2
 //#define CURVA_EM_DUVIDA CURVA_DIREITA // mudar no dia
 #define CURVA_EM_DUVIDA 3
-#define ANGLE_CURVE 90
+#define ANGLE_CURVE 120
 
 #define DETECCAO_POR_QUADRADO 1
 #define SAIDA_ESQUERDA 0
