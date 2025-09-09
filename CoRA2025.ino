@@ -273,6 +273,8 @@ int tentativasRecuperacao = 0;
 const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
 unsigned long tempoUltimaRecuperacao = 0;
 const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
+int contadorFaixa = 0;        // contador de leituras de linha perdida
+const int TOLERANCIA_FAIXA = 3; // nº mínimo de leituras para confirmar
 
 unsigned long delay_tempo_ult_dec_curva = 0;
 bool nao_detectar_curva = false;
@@ -286,16 +288,23 @@ void loop() {
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
     
-    if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+  if (saidaCurva == CURVA_NAO_ENCONTRADA && !faixa_de_pedestre) {
+    
       calcula_erro();
       
       if (faixa_de_pedestre) {
-        if (erro == LINHA_NAO_DETECTADA) {
-          realiza_faixa_de_pedestre();
-          faixa_de_pedestre = false;
-          if (debugSD) write_sd(2);
-        }
-      }
+  if (erro == LINHA_NAO_DETECTADA) {
+    contadorFaixa++;  // soma quando perdeu a linha
+    if (contadorFaixa >= TOLERANCIA_FAIXA) {
+      realiza_faixa_de_pedestre();
+      faixa_de_pedestre = false;
+      contadorFaixa = 0; // reseta para o próximo uso
+      if (debugSD) write_sd(2);
+    }
+  } else {
+    contadorFaixa = 0; // se voltou a ver linha, zera
+  }
+}
       
       if (erro != LINHA_NAO_DETECTADA) {
         // segue normalmente

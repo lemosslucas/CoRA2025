@@ -220,15 +220,22 @@ int inverte_sensor(int sensor){
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  if (SENSOR[2] == PRETO && calcula_sensores_ativos <= 1) {
+  int ativos = calcula_sensores_ativos(SENSOR);
+
+  // Detecta padrão de faixa: quase tudo branco, mas não totalmente perdido
+  if (ativos <= 1) {
     inversaoAtiva = true;
-  } 
+  }
 
   if (inversaoAtiva) {
-    // Se a inversão estiver ativa, inverte os valores dos sensores para o resto do código.
+    // Inverte leitura
     for (int i = 0; i < 5; i++) {
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }
+
+    // Marca no log
+    if (debugSD) write_sd(10);
+
     return true;
   }
 

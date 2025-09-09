@@ -37,7 +37,7 @@ const int TIMEOUT_PERIODO_FAIXA = 3000;
 
 
 // --- Tolerâncias ---
-const int TOLERANCIA_CURVA_90 = 2;
+const int TOLERANCIA_CURVA_90 = 3;
 const int TOLERANCIA_INVERSAO = 15;
 const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
