@@ -205,6 +205,9 @@ int inverte_sensor(int sensor){
   return 1;
 }
 
+
+unsigned long tempoInversaoAtivada = 0;
+
 /**
  * @brief Checks for a track color inversion.
  * 
@@ -215,39 +218,40 @@ int inverte_sensor(int sensor){
  * @param SENSOR Array containing the states of the main sensors. This array is modified in place.
  * @param SENSOR_CURVA Array containing the states of the curve sensors.
  * @note The current implementation detects an inversion if exactly one main sensor is active.
- * @note The `SENSOR_CURVA` parameter is not currently used in this function.
+ * @note The SENSOR_CURVA parameter is not currently used in this function.
  * 
- * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
+ * @return bool Returns true if an inversion was detected and handled, false otherwise.
  */
 // Coloque esta versão corrigida no seu arquivo challenges.cpp
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int ativos = calcula_sensores_ativos(SENSOR);
-
-  // se um sensor tiver vendo preto e o resto branco
+  return false;
   if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    inversaoAtiva = true;
-    if (debugSD) write_sd(10); // Log: Inversão iniciada
+      inversaoAtiva = true;
+      tempoInversaoAtivada = millis();
+      if (debugSD) write_sd(10);
   }
+
+  if (inversaoAtiva && millis() - tempoInversaoAtivada > 1000) { // só desliga depois de 200ms
+      if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+          inversaoAtiva = false;
+          if (debugSD) write_sd(11);
+          return false;
+      }
+  }
+
 
   // Se o modo de inversão está ativo, inverta a leitura dos sensores.
   if (inversaoAtiva) {
     for (int i = 0; i < 5; i++) {
       SENSOR[i] = inverte_sensor(SENSOR[i]);
-    }
-
-    int ativos_apos_inverter = calcula_sensores_ativos(SENSOR);
-    if (ativos_apos_inverter >= 4) {
-      inversaoAtiva = false; // Reseta a flag
-      if (debugSD) write_sd(11); 
-    }
-    
+    }    
     return true; 
   }
 
   // Se não entrou na lógica, retorna false.
   return false;
 }
-
 /**
  * @brief Handles the pedestrian crossing challenge.
  * 

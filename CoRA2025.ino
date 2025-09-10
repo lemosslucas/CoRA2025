@@ -290,12 +290,13 @@ void loop() {
       // calcula erro
       calcula_erro();
 
-      // verifica a faixa de pedestre
       if (faixa_de_pedestre) {
-        if (debugSD) write_sd(2);
-        realiza_faixa_de_pedestre();
-        faixa_de_pedestre = false;
-      }
+          if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+            if (debugSD) write_sd(2);
+            realiza_faixa_de_pedestre();
+            faixa_de_pedestre = false;
+          }
+        }
     } if (erro != LINHA_NAO_DETECTADA) {
         // segue normalmente
         calcula_PID();
@@ -340,7 +341,7 @@ void loop() {
           }
         }
       }
-    } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+     else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
       if (nao_detectar_curva) {
         delay_tempo_ult_dec_curva = millis();
       }
