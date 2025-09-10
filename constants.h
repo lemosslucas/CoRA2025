@@ -90,4 +90,8 @@ extern int marcacoesDireita, marcacoesEsquerda;
 
 extern bool jaContouEsquerda, jaContouDireita;
 
+extern bool inversao_finalizada;
+extern const int TIMEOUT_PERIODO_FAIXA;
+extern int ultima_posicao_linha;
+
 #endif // CONSTANTS_H

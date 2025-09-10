@@ -32,9 +32,10 @@ const int TIMEOUT_FAIXA_PEDESTRE = 5000;
 const int TIMEOUT_MARCACAO = 1000;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
+const int TIMEOUT_PERIODO_FAIXA = 2000;
 
 // --- Tolerâncias ---
-const int TOLERANCIA_CURVA_90 = 2;
+const int TOLERANCIA_CURVA_90 = 3;
 const int TOLERANCIA_INVERSAO = 15;
 const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
@@ -65,6 +66,8 @@ int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
 bool inversaoAtiva = false;
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 bool jaContouEsquerda = false, jaContouDireita = false;
+bool inversao_finalizada = false;
+int ultima_posicao_linha = 0;
 
 
 // --- Debug ---

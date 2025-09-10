@@ -102,7 +102,9 @@ void calcula_erro() {
   ler_sensores();
 
   // Check for inversion, signaling a pedestrian crossing
-  if (verifica_inversao(SENSOR, SENSOR_CURVA)) {
+  verifica_inversao(SENSOR, SENSOR_CURVA);
+
+  if (inversao_finalizada) {
     faixa_de_pedestre = true;
   }
 
@@ -283,8 +285,20 @@ void loop() {
 
   if (!debugMode) {
     ler_sensores();
+    int posicao = calcula_posicao(SENSOR);
+
+  if (posicao != 0) {
+    ultima_posicao_linha = posicao;  // guarda última leitura válida
+  }
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+    if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
+      if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+        if (debugSD) write_sd(2);
+        realiza_faixa_de_pedestre();
+        faixa_de_pedestre = false;
+      }
+    }
     
     if (saidaCurva == CURVA_NAO_ENCONTRADA) {
       calcula_erro();
@@ -338,9 +352,11 @@ void loop() {
         delay_tempo_ult_dec_curva = millis();
       }
 
-      turn_90(saidaCurva);
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      delay(200);
+     if (!inversaoAtiva) {
+            turn_90(saidaCurva);
+            run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+            delay(200);
+          }
       
       /*
       analisa_marcacoes();

@@ -203,6 +203,8 @@ int inverte_sensor(int sensor){
   return 1;
 }
 
+unsigned long tempoInversaoAtivada = 0;
+
 /**
  * @brief Checks for a track color inversion.
  * 
@@ -213,58 +215,49 @@ int inverte_sensor(int sensor){
  * @param SENSOR Array containing the states of the main sensors. This array is modified in place.
  * @param SENSOR_CURVA Array containing the states of the curve sensors.
  * @note The current implementation detects an inversion if exactly one main sensor is active.
- * @note The `SENSOR_CURVA` parameter is not currently used in this function.
+ * @note The SENSOR_CURVA parameter is not currently used in this function.
  * 
- * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
+ * @return bool Returns true if an inversion was detected and handled, false otherwise.
  */
-bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
-  return false;
-  // Contadores estáticos para filtrar ruído, exigindo leituras consecutivas para mudar o estado.
-  static int contador_pista_branca = 0; // Conta leituras de pista com linha branca
-  static int contador_pista_preta = 0;  // Conta leituras de pista com linha preta
+// Coloque esta versão corrigida no seu arquivo challenges.cpp
+bool linha_recuperada() {
+  ler_sensores();
+  int posicao = calcula_posicao(SENSOR);
 
-  // Calcula o número de sensores ativos na
-  int sensores_ativos = calcula_sensores_ativos(SENSOR);
-
-  // Condição para pista com linha branca (precisa de inversão): <= 2 sensores ativos e não é uma curva
-  bool pista_branca_detectada = (sensores_ativos <= 1 && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO);
-  // Condição para pista com linha preta (NÃO precisa de inversão): >= 3 sensores ativos e não é uma curva
-  bool pista_preta_detectada = (sensores_ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
-
-  if (!inversaoAtiva) { // Atualmente em pista de linha preta. Verifica se mudou para linha branca.
-    if (pista_branca_detectada) {
-      contador_pista_branca++;
-    } else {
-      contador_pista_branca = 0;
-    }
-
-    if (contador_pista_branca >= TOLERANCIA_INVERSAO) {
-      inversaoAtiva = true;
-      contador_pista_branca = 0; // Reseta contadores na transição
-      contador_pista_preta = 0;
-    }
-  } else { // Atualmente em pista de linha branca. Verifica se voltou para linha preta.
-    if (pista_preta_detectada) {
-      contador_pista_preta++;
-    } else {
-      contador_pista_preta = 0;
-    }
-
-    if (contador_pista_preta >= TOLERANCIA_INVERSAO) {
-      inversaoAtiva = false;
-      contador_pista_branca = 0; // Reseta contadores na transição
-      contador_pista_preta = 0;
-    }
-  }
-
-  if (inversaoAtiva) {
-    // Se a inversão estiver ativa, inverte os valores dos sensores para o resto do código.
-    for (int i = 0; i < 5; i++) {
-      SENSOR[i] = inverte_sensor(SENSOR[i]);
-    }
+  // Se encontrou uma posição válida (linha voltou a ser visível)
+  if (posicao != 0) {
     return true;
   }
+  return false;
+}
+bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
+  int ativos = calcula_sensores_ativos(SENSOR);
 
+  if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+    inversaoAtiva = true;
+    tempoInversaoAtivada = millis();
+    if (debugSD) write_sd(10);
+  }
+
+  if (inversaoAtiva && millis() - tempoInversaoAtivada > 1000) { // só desliga depois de 200ms
+    if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+        inversaoAtiva = false;
+        if (debugSD) write_sd(11);
+        inversao_finalizada = true;
+        return false;
+    }
+  }
+
+
+  // Se o modo de inversão está ativo, inverta a leitura dos sensores.
+  if (inversaoAtiva) {
+    for (int i = 0; i < 5; i++) {
+      SENSOR[i] = inverte_sensor(SENSOR[i]);
+    }    
+    return true; 
+  }
+
+  // Se não entrou na lógica, retorna false.
   return false;
 }
 
@@ -276,53 +269,61 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
  * to cross the track.
  */
 void realiza_faixa_de_pedestre() {
-  if (debugSD) write_sd(2); 
-  // Wait for the minimum time of 6 seconds to cross
-  delay(5200);
-
-  int inicio = millis();
-
-  while (TIMEOUT_FAIXA_PEDESTRE >= millis() - inicio) {
-    ler_sensores();
-    calcula_erro();
-    if (erro == LINHA_NAO_DETECTADA) erro = 0;
-    ajusta_movimento();
-  }
-}
-
-/**
- * @brief Executes the reverse gear challenge.
- * 
- * The robot stops, moves backward for a fixed duration, stops again,
- * and then turns 90 degrees to the specified side.
- * 
- * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
- */
-void realiza_marcha_re(int lado_da_curva) {
-  if (debugSD) write_sd(7);
-  stop_motors();
-  delay(500);
-
-  // 2. Execute a ré por um tempo fixo
+  // --- Dá ré curta para alinhar em cima da linha ---
   run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(1000);
-
-  // 3. Pare novamente
+  delay(150);  
   stop_motors();
-  delay(500);
 
-  // 4. Turn to the side of the second marker, as per the rules
-  if (lado_da_curva == SAIDA_DIREITA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  } else {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
+  if (debugSD) write_sd(2); 
+  delay(TIMEOUT_FAIXA_PEDESTRE); // espera de segurança
+
+  // --- Releitura da linha após a espera ---
+  ler_sensores();
+  int posicao = calcula_posicao(SENSOR); 
+  int ajuste = posicao * 10;  // fator de correção (calibrável)
+
+  // --- Correção inicial de ângulo (parado) ---
+  if (ajuste != 0) {
+    if (debugSD) write_sd(12);
+    if (ajuste < 0) {
+      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(abs(ajuste));
+    } else {
+      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(abs(ajuste));
+    }
+    stop_motors();
+    delay(100);
+  }
+
+  // --- Salva ângulo de referência com giroscópio ---
+  mpu.update();
+  float anguloReferencia = mpu.getAngleZ();
+  float Kp_gyro = 10.0; // ganho proporcional, ajustar na prática
+
+  // --- Travessia da faixa com correção pelo giroscópio ---
+  unsigned long inicio = millis();
+  while (millis() - inicio < TIMEOUT_FAIXA_PEDESTRE) {
+    mpu.update();
+    float anguloAtual = mpu.getAngleZ();
+    float erro = anguloReferencia - anguloAtual;
+
+    // Correção proporcional simples
+    int correcao = (int)(Kp_gyro * erro);
+
+    int velD = velocidadeBaseDireita - correcao;
+    int velE = velocidadeBaseEsquerda + correcao;
+
+    run(velD, velE);
+    ler_sensores();
+
+    // Se a linha normal for encontrada novamente, encerra
+    if (linha_recuperada()) break;
   }
 
   stop_motors();
+  delay(100);
 }
-
 /**
  * @brief Determines the exit direction for a challenge based on marker counts.
  * 

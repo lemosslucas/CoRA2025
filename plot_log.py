@@ -15,7 +15,10 @@ challenge_map = {
     6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
     7: {'label': 'Ré', 'color': 'pink', 'marker': 'v', 'size': 100},
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
-    9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100}
+    9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
+    10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
+    11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
+    12: {'label': 'reajuste faixa', 'color': 'green', 'marker': 'o', 'size': 80},
 }
 
 
