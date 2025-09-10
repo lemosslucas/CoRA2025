@@ -69,6 +69,8 @@ bool inversaoAtiva = false;
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 bool jaContouEsquerda = false, jaContouDireita = false;
 
+int contadorFaixa = 0;        // contador de leituras de linha perdida
+const int TOLERANCIA_FAIXA = 3; // nº mínimo de leituras para confirmar
 
 // --- Debug ---
 bool debugMode = false;

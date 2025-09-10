@@ -17,6 +17,7 @@ challenge_map = {
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
     9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
     10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
+    11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
 }
 
 

@@ -87,7 +87,8 @@ extern const int TIMEOUT_MARCACAO;
 extern const int TIME_WITHOUT_LINE;
 extern const int TIMEOUT_INVERSAO;
 extern const int TIMEOUT_PERIODO_FAIXA;
-
+extern const int TOLERANCIA_FAIXA;
+extern int contadorFaixa;        
 extern int marcacoesDireita, marcacoesEsquerda;
 
 extern bool jaContouEsquerda, jaContouDireita;

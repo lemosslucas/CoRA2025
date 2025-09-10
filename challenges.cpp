@@ -219,26 +219,32 @@ int inverte_sensor(int sensor){
  * 
  * @return bool Returns `true` if an inversion was detected and handled, `false` otherwise.
  */
+// Coloque esta versão corrigida no seu arquivo challenges.cpp
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int ativos = calcula_sensores_ativos(SENSOR);
 
-  // Detecta padrão de faixa: quase tudo branco, mas não totalmente perdido
-  if (ativos <= 1) {
+  // se um sensor tiver vendo preto e o resto branco
+  if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
     inversaoAtiva = true;
+    if (debugSD) write_sd(10); // Log: Inversão iniciada
   }
 
+  // Se o modo de inversão está ativo, inverta a leitura dos sensores.
   if (inversaoAtiva) {
-    // Inverte leitura
     for (int i = 0; i < 5; i++) {
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }
 
-    // Marca no log
-    if (debugSD) write_sd(10);
-
-    return true;
+    int ativos_apos_inverter = calcula_sensores_ativos(SENSOR);
+    if (ativos_apos_inverter >= 4) {
+      inversaoAtiva = false; // Reseta a flag
+      if (debugSD) write_sd(11); 
+    }
+    
+    return true; 
   }
 
+  // Se não entrou na lógica, retorna false.
   return false;
 }
 
@@ -255,8 +261,12 @@ void realiza_faixa_de_pedestre() {
   // Wait for the minimum time of 6 seconds to cross
   delay(TIMEOUT_FAIXA_PEDESTRE);
 
+  //avanca em linha reta com velocidade constante
+  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  delay(TIMEOUT_PERIODO_FAIXA);
+  
+  /*
   int inicio = millis();
-
   while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
     ler_sensores();
     calcula_erro();
@@ -267,6 +277,7 @@ void realiza_faixa_de_pedestre() {
     erro = ajuste / 10;
     ajusta_movimento();
   }
+  */
 }
 
 /**
