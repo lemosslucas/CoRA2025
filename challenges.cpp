@@ -185,7 +185,39 @@ void turn_until_angle(int target_angle = 90) {
 
   if (debugMode) Serial.println("Rotation finished");
 }
+void turn_to_absolute(float target_angle) {
+  mpu.update();
+  float angAtual = mpu.getAngleZ();
 
+  // calcula erro normalizado
+  float erro = target_angle - angAtual;
+  if (erro > 180) erro -= 360;
+  if (erro < -180) erro += 360;
+
+  // decide direção
+  int sentido = (erro > 0) ? 1 : -1;
+
+  unsigned long previous_time = millis();
+  float angle_z = 0;
+
+  // roda até percorrer o erro relativo
+  while (fabs(angle_z) < fabs(erro)) {
+    mpu.update(); 
+    float angular_velocity_z = mpu.getGyroZ() - gyro_bias_z;
+
+    unsigned long current_time = millis();
+    float delta_time = (current_time - previous_time) / 1000.0; 
+    previous_time = current_time;
+
+    angle_z += angular_velocity_z * delta_time * sentido; // aplica direção
+
+    if (debugMode) Serial.println(angle_z);
+    delay(5);
+  }
+
+  stop_motors();
+  if (debugMode) Serial.println("Rotation finished");
+}
 
 /**
  * @brief Inverts the value obtained from a sensor.
@@ -220,6 +252,55 @@ unsigned long tempoInversaoAtivada = 0;
  * @return bool Returns true if an inversion was detected and handled, false otherwise.
  */
 // Coloque esta versão corrigida no seu arquivo challenges.cpp
+/**
+ 
+@brief Calcula o ângulo inicial do robô e define o setpoint global.
+Esta função deve ser chamada no setup(), após a calibração do giroscópio.
+Ela mede a orientação atual do robô, encontra qual dos ângulos cardeais
+(0, 90, 180, 270) está mais próximo e armazena esse valor na variável
+global anguloSetPointGlobal. Isso alinha o sistema de referência do robô
+com a pista.*/
+void definirSetPointInicial() {
+  if (debugMode) Serial.println("Definindo setpoint de ângulo inicial...");
+
+  float anguloInicialMedio = 0;
+  int amostras = 50; // Pega 50 amostras para ter uma média estável
+
+  // Tira uma média das leituras iniciais para reduzir ruído
+  for (int i = 0; i < amostras; i++) {
+    mpu.update();
+    anguloInicialMedio += mpu.getAngleZ();
+    delay(5);
+  }
+  anguloInicialMedio /= amostras;
+
+  if (debugMode) {
+    Serial.print("Angulo inicial medido: ");
+    Serial.println(anguloInicialMedio);
+  }
+
+  // Array com os ângulos de referência possíveis
+  int setpoints[] = {0, 90, 180, 270, -90, -180, -270};
+  float menorDiferenca = 360.0;
+  float setpointEscolhido = 0.0;
+
+  // Itera para encontrar o setpoint mais próximo
+  for (int sp : setpoints) {
+    float diferenca = abs(anguloInicialMedio - sp);
+    if (diferenca < menorDiferenca) {
+      menorDiferenca = diferenca;
+      setpointEscolhido = sp;
+    }
+  }
+
+  // Atribui o valor encontrado à variável global
+  anguloSetPointGlobal = setpointEscolhido;
+
+  if (debugMode) {
+    Serial.print("Setpoint global definido para: ");
+    Serial.println(anguloSetPointGlobal);
+  }
+}
 bool linha_recuperada() {
   ler_sensores();
   int posicao = calcula_posicao(SENSOR);
@@ -268,42 +349,95 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
  * It waits for a minimum required time (6 seconds) and then moves forward
  * to cross the track.
  */
-void realiza_faixa_de_pedestre() {
-  // --- Dá ré curta para alinhar em cima da linha ---
-  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(150);  
-  stop_motors();
+ /**
+ 
+@brief Alinha o robô com o setpoint global, escolhendo o caminho mais curto.*
+Calcula a diferença entre o ângulo atual e o setpoint global, normaliza
+essa diferença para o intervalo [-180, 180] para encontrar o caminho
+mais curto, e então executa a rotação para a esquerda ou direita conforme
+necessário.*/
+float anguloMaisProximo(float angAtual) {
+  int setpoints[4] = {0, 90, 180, -90}; // -90 equivale a 270
+  float menorDiff = 9999;
+  float escolhido = 0;
 
-  if (debugSD) write_sd(2); 
-  delay(TIMEOUT_FAIXA_PEDESTRE); // espera de segurança
-
-  // --- Releitura da linha após a espera ---
-  ler_sensores();
-  int posicao = calcula_posicao(SENSOR); 
-  int ajuste = posicao * 10;  // fator de correção (calibrável)
-
-  // --- Correção inicial de ângulo (parado) ---
-  if (ajuste != 0) {
-    if (debugSD) write_sd(12);
-    if (ajuste < 0) {
-      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(abs(ajuste));
-    } else {
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(abs(ajuste));
+  for (int i = 0; i < 4; i++) {
+    float diff = fabs(angAtual - setpoints[i]);
+    if (diff > 180) diff = 360 - diff; // correção wrap-around
+    if (diff < menorDiff) {
+      menorDiff = diff;
+      escolhido = setpoints[i];
     }
+  }
+  return escolhido;
+}
+const int offset_alinhamento = 90;
+
+void alinharParaCardealMaisProximo() {
+  mpu.update();
+  float angAtual = mpu.getAngleZ() - gyro_bias_z;
+  float alvo = anguloMaisProximo(angAtual);
+
+  // tenta alinhar até estar dentro da tolerância
+  for (int tentativa = 0; tentativa < 1; tentativa++) { // até 3 ajustes
+    mpu.update();
+    angAtual = mpu.getAngleZ();
+
+    float erro = alvo - angAtual;
+    if (erro > 180) erro -= 360;
+    if (erro < -180) erro += 360;
+
+    if (abs(erro) < 3) { // tolerância de 3 graus
+      stop_motors();
+      if (debugMode) {
+        Serial.print("Alinhado em: ");
+        Serial.println(angAtual);
+      }
+      return; // já está alinhado
+    }
+
+    if (erro < 0) {
+      // gira um pouco à direita
+      turn_right(velocidadeBaseDireita - offset_alinhamento, velocidadeBaseEsquerda - offset_alinhamento);
+      turn_to_absolute(alvo);
+    } else {
+      // gira um pouco à esquerda
+      turn_left(velocidadeBaseDireita - offset_alinhamento, velocidadeBaseEsquerda - offset_alinhamento);
+      turn_to_absolute(alvo);
+    }
+
     stop_motors();
     delay(100);
   }
 
-  // --- Salva ângulo de referência com giroscópio ---
+  // última leitura para confirmar
   mpu.update();
-  float anguloReferencia = mpu.getAngleZ();
-  float Kp_gyro = 10.0; // ganho proporcional, ajustar na prática
+  angAtual = mpu.getAngleZ();
+  if (debugMode) {
+    Serial.print("Angulo final apos alinhamento: ");
+    Serial.println(angAtual);
+  }
+}
 
-  // --- Travessia da faixa com correção pelo giroscópio ---
+void realiza_faixa_de_pedestre() {
+  // --- Dá ré curta para se posicionar antes da faixa ---
+  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  delay(150);
+  stop_motors();
+  delay(TIMEOUT_FAIXA_PEDESTRE); // Pausa para estabilizar o MPU
+
+  if (debugSD) write_sd(2);
+
+  // alinah perfeito
+  alinharParaCardealMaisProximo();
+
+  // --- FASE 2: Travessia da faixa em linha reta ---
+  if (debugMode) Serial.println("Alinhamento concluído. Atravessando a faixa...");
+  float anguloReferencia = mpu.getAngleZ();
+  float Kp_gyro = 50.0; // ganho proporcional, ajustar na prática
+
   unsigned long inicio = millis();
-  while (millis() - inicio < TIMEOUT_FAIXA_PEDESTRE) {
+  while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
     mpu.update();
     float anguloAtual = mpu.getAngleZ();
     float erro = anguloReferencia - anguloAtual;
@@ -311,19 +445,19 @@ void realiza_faixa_de_pedestre() {
     // Correção proporcional simples
     int correcao = (int)(Kp_gyro * erro);
 
-    int velD = velocidadeBaseDireita - correcao;
-    int velE = velocidadeBaseEsquerda + correcao;
+    int velD = constrain(velocidadeBaseDireita - correcao, 0, 255);
+    int velE = constrain(velocidadeBaseEsquerda + correcao, 0, 255);
 
     run(velD, velE);
     ler_sensores();
 
     // Se a linha normal for encontrada novamente, encerra
-    if (linha_recuperada()) break;
+  
   }
 
   stop_motors();
   delay(100);
-}
+} 
 /**
  * @brief Determines the exit direction for a challenge based on marker counts.
  * 

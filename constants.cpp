@@ -32,7 +32,7 @@ const int TIMEOUT_FAIXA_PEDESTRE = 5000;
 const int TIMEOUT_MARCACAO = 1000;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
-const int TIMEOUT_PERIODO_FAIXA = 2000;
+const int TIMEOUT_PERIODO_FAIXA = 2300;
 
 // --- Tolerâncias ---
 const int TOLERANCIA_CURVA_90 = 3;
@@ -68,6 +68,7 @@ int marcacoesDireita = 0, marcacoesEsquerda = 0;
 bool jaContouEsquerda = false, jaContouDireita = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
+float anguloSetPointGlobal = 0.0;
 
 
 // --- Debug ---

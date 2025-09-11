@@ -41,6 +41,7 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
+  definirSetPointInicial();
   //mpu.calcGyroOffsets(true);
 
   if (debugSD) setup_sd();
