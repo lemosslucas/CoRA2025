@@ -98,7 +98,7 @@ int calcula_posicao(int SENSOR[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
-
+  
   unsigned long startTime = millis();
   // This timeout prevents the robot from getting stuck if it misreads the sensors.
   // (millis() - startTime < TIMEOUT_90_CURVE)
@@ -107,17 +107,8 @@ void turn_90(int curvaEncontrada) {
     run(velocidadeBaseDireita, velocidadeBaseEsquerda);
     ler_sensores(); // Keep updating sensor values to check the condition.
   }
-
   delay(200);
-  /*
-  while (true) {
-    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    ler_sensores();
-    if (calcula_sensores_ativos(SENSOR) >= 3) {
-      break;
-    }
-  }
-  */
+  
   
   int posicao = calcula_posicao(SENSOR);
 
@@ -147,6 +138,15 @@ void turn_90(int curvaEncontrada) {
 
   stop_motors();
   delay(100); 
+  // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
+  while (true) {
+    calcula_erro();
+    calcula_PID();
+    ajusta_movimento();
+    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+      break;
+    }
+  }
 }
 
 
@@ -239,10 +239,10 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
 
   if (inversaoAtiva && millis() - tempoInversaoAtivada > 1000) { // só desliga depois de 200ms
     if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-        inversaoAtiva = false;
-        if (debugSD) write_sd(11);
-        inversao_finalizada = true;
-        return false;
+      inversaoAtiva = false;
+      if (debugSD) write_sd(11);
+      inversao_finalizada = true;
+      return false;
     }
   }
 
@@ -429,7 +429,7 @@ void realiza_marcha_re(int lado_da_curva) {
 
   // 3. Pare novamente
   stop_motors();
-  delay(500);
+  delay(1000);
 
   // 4. Turn to the side of the second marker, as per the rules
   if (lado_da_curva == SAIDA_DIREITA) {
@@ -441,6 +441,7 @@ void realiza_marcha_re(int lado_da_curva) {
   }
 
   stop_motors();
+  delay(1000);
 }
 
 bool tenta_recuperar_linha() {
@@ -483,24 +484,24 @@ bool tenta_recuperar_linha() {
  * @return int The updated marker count.
  */
 int contadorBranco = 0;
-int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco) {
-  const int TOLERANCIA_MARCACAO = 3;  // nº mínimo de leituras consecutivas no branco
+int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco, unsigned long &tempoMarcacao) {
+  const int TOLERANCIA_MARCACAO = 5;  
 
   if (estadoSensor == BRANCO) {
-      contadorBranco++;
-      // Só conta se atingiu o limiar e ainda não tinha contado
-      if (contadorBranco >= TOLERANCIA_MARCACAO && !jaContou) {
-          jaContou = true;
-          return contagemAtual + 1;
-      }
+    contadorBranco++;
+    // Só conta se atingiu o limiar e ainda não tinha contado
+    if (contadorBranco >= TOLERANCIA_MARCACAO && !jaContou) {
+      jaContou = true;
+      tempoMarcacao = millis(); 
+      return contagemAtual + 1;
+    }
   } else {
-      // Reset quando sai do branco
-      contadorBranco = 0;
-      jaContou = false;
+    // Reset quando sai do branco
+    contadorBranco = 0;
+    jaContou = false;
   }
   return contagemAtual;
 }
-
 
 
 void analisa_marcacoes() {
@@ -512,19 +513,13 @@ void analisa_marcacoes() {
   while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
     // Update sensor values
     ler_sensores();
-
-    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-      // Se detectou, reseta o cronômetro do timeout
-      //tempoUltimaDeteccao = millis();
-    }
     
     // conta as marcacoes
     static int contadorBrancoEsq = 0;
     static int contadorBrancoDir = 0;
 
-    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq);
-    marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir);
-
+    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq, tempoMarcacaoEsquerda);
+    marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir, tempoMarcacaoDireita);
 
     // Ensure the robot stays on the line
     calcula_erro();

@@ -216,7 +216,7 @@ void setup_sd() {
 
   if (logFile) {
     //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1"); 
     logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -241,6 +241,12 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(marcacoesEsquerda);
     logFile.print(",");
+
+    logFile.print(tempoMarcacaoDireita);
+    logFile.print(",");
+    logFile.print(tempoMarcacaoEsquerda);
+    logFile.print(",");
+
     logFile.print(velocidadeDireita);
     logFile.print(",");
     logFile.print(velocidadeEsquerda);
@@ -296,7 +302,7 @@ void loop() {
     if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
       if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
         if (debugSD) write_sd(2);
-        //realiza_faixa_de_pedestre();
+        realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
       }
     }
@@ -356,20 +362,24 @@ void loop() {
 
         analisa_marcacoes();
         
-        if (marcacoesDireita == 1 && marcacoesEsquerda == 1) {
-          realiza_marcha_re(saidaCurva);
+        if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
+          unsigned long deltaTempo;
+          if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
+            deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
+          } else {
+            deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
+          }
+
+          if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
+            realiza_marcha_re(saidaCurva);
+          } else {
+            turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
+            if (debugSD) write_sd(6);
+          }
         } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
           //realiza_rotatoria();
         } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
           turn_90(saidaCurva);
-          while (true) {
-            calcula_erro();
-            calcula_PID();
-            ajusta_movimento();
-            if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-              break;
-            }
-          }
         }
       }
       

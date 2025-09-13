@@ -12,7 +12,7 @@ challenge_map = {
     3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
     1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
-    6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
+    6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'x', 'size': 100},
     7: {'label': 'Ré', 'color': 'pink', 'marker': 'x', 'size': 100},
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
     9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
