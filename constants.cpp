@@ -22,8 +22,8 @@ const int OFFSET_MOTORS = 5;
 const int velocidadeBase = 210;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
-int velocidadeDireita = 0;
-int velocidadeEsquerda = 0;
+int velocidadeDireita = 255;
+int velocidadeEsquerda = 255;
 
 
 // --- Timeouts ---
@@ -74,4 +74,4 @@ float anguloSetPointGlobal = 0.0;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = true;
+bool debugSD = false;

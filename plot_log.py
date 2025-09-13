@@ -18,7 +18,7 @@ challenge_map = {
     9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
     10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
     11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
-    12: {'label': 'reajuste faixa', 'color': 'green', 'marker': 'o', 'size': 80},
+    12: {'label': 'reajuste faixa', 'color': 'red', 'marker': 'o', 'size': 40},
 }
 
 
@@ -237,10 +237,10 @@ def plot_data(df, Kp, Ki, Kd):
     ax1.legend()
 
     # Plot 2: PID Component Contributions
-    ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='green', linewidth=2.5)
-    ax2.set_title('Smoothed_Error vs Time')
-    ax2.set_ylabel('Error Smoothed')
-    ax2.set_ylim(-6, 6) # Set fixed y-axis for error
+    ax2.plot(df['Time'], df['Inclinacao'], label='Inclinacao', color='green', linewidth=2.5)
+    ax2.set_title('Inclinacao vs Time')
+    ax2.set_ylabel('Inclinacao')
+    #ax2.set_ylim(-6, 6) # Set fixed y-axis for error
     ax2.grid(True)
     ax2.legend()
 
@@ -485,7 +485,7 @@ def change_log_directory(current_dir):
         return current_dir
 
 def main():
-    log_dir = "D:\\"
+    log_dir = "E:\\"
 
     while True:
         clear_screen()

@@ -20,7 +20,8 @@ File logFile;
 void setup() {
   // Initialize serial communication
   if (debugMode) Serial.begin(9600);
-
+  if (debugSD) setup_sd();
+  
   // Sensor initialization
   pinMode(sensor_esquerda, INPUT);
   pinMode(sensor_esquerda_central, INPUT);
@@ -41,10 +42,8 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
-  definirSetPointInicial();
+  definirSetPointInicial_Quadrante();
   //mpu.calcGyroOffsets(true);
-
-  if (debugSD) setup_sd();
   
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
@@ -198,18 +197,18 @@ void setup_sd() {
     tempoLedLigou = millis();
     return;
   }
-  
-  String baseName = "L" + String((int)Kp); // Ex: "L100"
-  String newFileName;
-  
-  // 2. Procure o primeiro índice disponível
+
+  // --- CÓDIGO MODIFICADO ---
+  char newFileName[16]; // Array para guardar o nome do arquivo. Ex: "L135_99.TXT"
+
+  // Procura o primeiro índice disponível
   for (int i = 0; i < 100; i++) {
-    // Formato final será algo como "L100_0.TXT" (7 caracteres + extensão)
-    newFileName = baseName + "_" + String(i) + ".TXT"; 
+    // Formata o nome do arquivo de forma segura usando snprintf
+    snprintf(newFileName, sizeof(newFileName), "L%d_%d.TXT", (int)Kp, i);
     
-    // 3. Verifica se o arquivo NÃO existe
+    // Verifica se o arquivo NÃO existe
     if (!SD.exists(newFileName)) {
-      break; 
+      break; // Encontrou um nome disponível
     }
   }
 
@@ -218,15 +217,15 @@ void setup_sd() {
     Serial.println(newFileName);
   }
 
-  // 4. Abre o novo arquivo para escrita.
+  // Abre o novo arquivo para escrita
   logFile = SD.open(newFileName, FILE_WRITE);
+  // --- FIM DA MODIFICAÇÃO ---
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.flush(); 
+    logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
-    // Se falhar mesmo com o nome curto, o problema é outro.
     if(debugMode) Serial.println("Failed to create the log file.");
   }
 }
@@ -240,6 +239,9 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(erro);
     logFile.print(",");
     logFile.print(challenge_marker);
+    logFile.print(",");
+    mpu.update();
+    logFile.print(mpu.getAngleZ());
     logFile.print(",");
     logFile.print(velocidadeDireita);
     logFile.print(",");
@@ -296,7 +298,7 @@ void loop() {
     if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
       if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
         if (debugSD) write_sd(2);
-        realiza_faixa_de_pedestre();
+        //realiza_faixa_de_pedestre();
         faixa_de_pedestre = false;
       }
     }
