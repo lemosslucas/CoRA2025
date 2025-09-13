@@ -42,8 +42,6 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
-  definirSetPointInicial_Quadrante();
-  //mpu.calcGyroOffsets(true);
   
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
@@ -192,14 +190,10 @@ void imprime_serial() {
 void setup_sd() {
   if (!SD.begin(chipSelect)) {
     if (debugMode) Serial.println("SD Card initialization failed!");
-    digitalWrite(LED_LEFT, HIGH);
-    ledLigado = true;
-    tempoLedLigou = millis();
     return;
   }
 
-  // --- CÓDIGO MODIFICADO ---
-  char newFileName[16]; // Array para guardar o nome do arquivo. Ex: "L135_99.TXT"
+  char newFileName[16]; 
 
   // Procura o primeiro índice disponível
   for (int i = 0; i < 100; i++) {
@@ -219,10 +213,10 @@ void setup_sd() {
 
   // Abre o novo arquivo para escrita
   logFile = SD.open(newFileName, FILE_WRITE);
-  // --- FIM DA MODIFICAÇÃO ---
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
     logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -240,8 +234,12 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(challenge_marker);
     logFile.print(",");
-    mpu.update();
-    logFile.print(mpu.getAngleZ());
+    //mpu.update();
+    //logFile.print(mpu.getAngleZ());
+    //logFile.print(",");
+    logFile.print(marcacoesDireita);
+    logFile.print(",");
+    logFile.print(marcacoesEsquerda);
     logFile.print(",");
     logFile.print(velocidadeDireita);
     logFile.print(",");
@@ -290,9 +288,9 @@ void loop() {
     ler_sensores();
     int posicao = calcula_posicao(SENSOR);
 
-  if (posicao != 0) {
-    ultima_posicao_linha = posicao;  // guarda última leitura válida
-  }
+    if (posicao != 0) {
+      ultima_posicao_linha = posicao;  // guarda última leitura válida
+    }
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
     if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
@@ -351,27 +349,30 @@ void loop() {
         }
       }
     } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      if (nao_detectar_curva) {
-        delay_tempo_ult_dec_curva = millis();
-      }
-
-     if (!inversaoAtiva) {
-            turn_90(saidaCurva);
-            run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-            delay(200);
-          }
       
-      /*
-      analisa_marcacoes();
-      if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
-        turn_90(saidaCurva);
-      } 
-      */
+      if (!inversaoAtiva) {
+        marcacoesDireita = 0;
+        marcacoesEsquerda = 0;
 
-      // implementacao posterior da rotatoria e da marca re
-      //
-      //
-
+        analisa_marcacoes();
+        
+        if (marcacoesDireita == 1 && marcacoesEsquerda == 1) {
+          realiza_marcha_re(saidaCurva);
+        } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
+          //realiza_rotatoria();
+        } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+          turn_90(saidaCurva);
+          while (true) {
+            calcula_erro();
+            calcula_PID();
+            ajusta_movimento();
+            if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+              break;
+            }
+          }
+        }
+      }
+      
       stop_motors();
     }
   } else { 

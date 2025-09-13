@@ -13,7 +13,7 @@ challenge_map = {
     1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
     6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
-    7: {'label': 'Ré', 'color': 'pink', 'marker': 'v', 'size': 100},
+    7: {'label': 'Ré', 'color': 'pink', 'marker': 'x', 'size': 100},
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
     9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
     10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
@@ -237,9 +237,9 @@ def plot_data(df, Kp, Ki, Kd):
     ax1.legend()
 
     # Plot 2: PID Component Contributions
-    ax2.plot(df['Time'], df['Inclinacao'], label='Inclinacao', color='green', linewidth=2.5)
-    ax2.set_title('Inclinacao vs Time')
-    ax2.set_ylabel('Inclinacao')
+    ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed_Error', color='green', linewidth=2.5)
+    ax2.set_title('Smoothed_Error vs Time')
+    ax2.set_ylabel('Smoothed_Error')
     #ax2.set_ylim(-6, 6) # Set fixed y-axis for error
     ax2.grid(True)
     ax2.legend()

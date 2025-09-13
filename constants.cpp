@@ -22,14 +22,14 @@ const int OFFSET_MOTORS = 5;
 const int velocidadeBase = 210;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
-int velocidadeDireita = 255;
-int velocidadeEsquerda = 255;
+int velocidadeDireita = 0;
+int velocidadeEsquerda = 0;
 
 
 // --- Timeouts ---
 const int TIMEOUT_90_CURVE = 700;
 const int TIMEOUT_FAIXA_PEDESTRE = 5000;
-const int TIMEOUT_MARCACAO = 1000;
+const int TIMEOUT_MARCACAO = 300;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
 const int TIMEOUT_PERIODO_FAIXA = 2300;
@@ -41,7 +41,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = 135, Ki = 0, Kd = 0;
+const float Kp = 180, Ki = 0, Kd = 50;
 
 float erro = 0;
 float erroAnterior = 0;
@@ -49,10 +49,8 @@ float I = 0, P = 0, D = 0, PID = 0;
 
 
 // --- LEDs ---
-//const int LED_LEFT  = (!debugSD) ? 7 : NULL;
-//const int LED_RIGHT = (!debugSD) ? 8 : NULL;
-const int LED_RIGHT = NULL;
-const int LED_LEFT  = NULL;
+const int LED_LEFT  = (!debugSD) ? 7 : NULL;
+const int LED_RIGHT = (!debugSD) ? 10 : NULL;
 int tempoLedLigou = 0;
 bool ledLigado = false;
 
@@ -74,4 +72,4 @@ float anguloSetPointGlobal = 0.0;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = false;
+bool debugSD = true;

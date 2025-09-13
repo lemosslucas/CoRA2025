@@ -3,6 +3,18 @@
 #include "constants.h"
 #include "CoRA2025.h"
 
+void verifica_estado_led() {
+  // verifica se o led ta ligado
+  if (ledLigado) {
+    // verifica se o led ta ligado por mais de 3 segundos
+    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
+      digitalWrite(LED_LEFT, LOW);
+      digitalWrite(LED_RIGHT, LOW);
+      ledLigado = false;
+    }
+  }
+}
+
 /**
  * @brief Calculates the number of active sensors.
  * 
@@ -89,11 +101,23 @@ void turn_90(int curvaEncontrada) {
 
   unsigned long startTime = millis();
   // This timeout prevents the robot from getting stuck if it misreads the sensors.
-  while ((millis() - startTime < TIMEOUT_90_CURVE)) {
+  // (millis() - startTime < TIMEOUT_90_CURVE)
+  while (calcula_sensores_ativos(SENSOR) <= 1) {
     // Move straight forward, not using line-following logic here.
     run(velocidadeBaseDireita, velocidadeBaseEsquerda);
     ler_sensores(); // Keep updating sensor values to check the condition.
   }
+
+  delay(200);
+  /*
+  while (true) {
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores();
+    if (calcula_sensores_ativos(SENSOR) >= 3) {
+      break;
+    }
+  }
+  */
   
   int posicao = calcula_posicao(SENSOR);
 
@@ -207,7 +231,7 @@ unsigned long tempoInversaoAtivada = 0;
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int ativos = calcula_sensores_ativos(SENSOR);
 
-  if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+  if (ativos == 1 && !inversaoAtiva && SENSOR[2] == PRETO && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
     inversaoAtiva = true;
     tempoInversaoAtivada = millis();
     if (debugSD) write_sd(10);
@@ -236,130 +260,6 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
 }
 
 
-void definirSetPointInicial_Quadrante() {
-    if (debugMode) Serial.println("Definindo setpoint de ângulo inicial (Lógica de Quadrante)...");
-
-    float angulo_atual = mpu.getAngleZ();
-    // Normaliza o ângulo para o intervalo -180 a 180 para facilitar a lógica
-    if (angulo_atual > 180) {
-        angulo_atual -= 360;
-    }
-
-    if (debugMode) {
-        Serial.print("Angulo inicial medido: ");
-        Serial.println(angulo_atual);
-    }
-    
-    // Lógica de Quadrante:
-    // Se está apontando para frente (entre -45 e 45 graus)
-    if (-45 <= angulo_atual && angulo_atual < 45) {
-        anguloSetPointGlobal = 0.0;
-    }
-    // Se está apontando para a direita (entre 45 e 135 graus)
-    else if (45 <= angulo_atual && angulo_atual < 135) {
-        anguloSetPointGlobal = 90.0;
-    }
-    // Se está apontando para a esquerda (entre -135 e -45 graus)
-    else if (-135 <= angulo_atual && angulo_atual < -45) {
-        anguloSetPointGlobal = -90.0; // Equivalente a 270
-    }
-    // Se está apontando para trás (qualquer outro caso)
-    else {
-        anguloSetPointGlobal = 180.0;
-    }
-        
-    if (debugMode) {
-        Serial.print("Setpoint de quadrante escolhido: ");
-        Serial.println(anguloSetPointGlobal);
-    }
-}
-
-
-/**
- * @brief Gira o robô para um ângulo absoluto no plano, 
- * usando controle proporcional para precisão e para evitar overshoot.
- * @param anguloAlvo O ângulo absoluto de destino (ex: 0, 45, 90).
- * @param velocidadeGiro A velocidade máxima durante a rotação.
- */
-void girarParaAnguloAbsoluto(float anguloAlvo, int velocidadeGiro = 150) {
-    if (debugMode) {
-        Serial.print("Iniciando giro para o angulo absoluto: ");
-        Serial.println(anguloAlvo);
-    }
-    
-    // Um Kp menor é geralmente melhor para robôs físicos para evitar oscilação.
-    const float kp_giro = 0.3; 
-    
-    // Encontre o menor valor de velocidade que faz seu robô girar de forma consistente.
-    // Este valor combate a "zona morta" dos motores.
-    const int VELOCIDADE_MINIMA_GIRO = 100; 
-
-    float erro_giro = 0;
-
-    do {
-        mpu.update();
-        float angulo_atual = mpu.getAngleZ();
-        if (angulo_atual > 180) angulo_atual -= 360;
-        if (angulo_atual < -180) angulo_atual += 360;
-
-        erro_giro = anguloAlvo - angulo_atual;
-
-        // Normaliza o erro para encontrar o caminho mais curto
-        if (erro_giro > 180) erro_giro -= 360;
-        if (erro_giro < -180) erro_giro += 360;
-        
-        // Se o erro já é mínimo, sai do loop
-        if (abs(erro_giro) <= 3) {
-            break;
-        }
-        
-        // Calcula a velocidade de giro proporcional ao erro
-        int velocidade_ajustada = (int)(erro_giro * kp_giro);
-        
-        // --- LÓGICA ANTI-ZONA MORTA ---
-        if (velocidade_ajustada > 0 && velocidade_ajustada < VELOCIDADE_MINIMA_GIRO) {
-            velocidade_ajustada = VELOCIDADE_MINIMA_GIRO;
-        }
-        if (velocidade_ajustada < 0 && velocidade_ajustada > -VELOCIDADE_MINIMA_GIRO) {
-            velocidade_ajustada = -VELOCIDADE_MINIMA_GIRO;
-        }
-
-        // Limita a velocidade máxima
-        velocidade_ajustada = constrain(velocidade_ajustada, -velocidadeGiro, velocidadeGiro);
-        
-        // Acionamento dos motores
-        if (velocidade_ajustada > 0) {
-            // Erro positivo, gira para a direita
-            turn_right(velocidade_ajustada, velocidade_ajustada);
-        } else {
-            // Erro negativo, gira para a esquerda
-            turn_left(abs(velocidade_ajustada), abs(velocidade_ajustada));
-        }
-        
-        delay(10);
-
-    } while (true); // A condição de saída agora está com o 'break'
-    
-    stop_motors();
-    if (debugMode) {
-        Serial.print("Giro concluido. Angulo final: ");
-        Serial.println(mpu.getAngleZ());
-    }
-    if (debugSD) write_sd(12);
-}
-
-
-/**
- * @brief (NOVA FUNÇÃO) Chama a função de giro para se alinhar ao setpoint global.
- */
-void alinharParaCardealMaisProximo() {
-    if (debugMode) {
-        Serial.print("Iniciando alinhamento com o setpoint: ");
-        Serial.println(anguloSetPointGlobal);
-    }
-    girarParaAnguloAbsoluto(anguloSetPointGlobal);
-}
-
 void realiza_faixa_de_pedestre() {
   // --- Dá ré curta para se posicionar antes da faixa ---
   run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
@@ -369,13 +269,10 @@ void realiza_faixa_de_pedestre() {
 
   if (debugSD) write_sd(2);
 
-  // alinah perfeito
-  alinharParaCardealMaisProximo();
-
   // --- FASE 2: Travessia da faixa em linha reta ---
   if (debugMode) Serial.println("Alinhamento concluído. Atravessando a faixa...");
   float anguloReferencia = mpu.getAngleZ();
-  float Kp_gyro = 50.0; // ganho proporcional, ajustar na prática
+  float Kp_gyro = 50.0; 
 
   unsigned long inicio = millis();
   while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
@@ -391,9 +288,6 @@ void realiza_faixa_de_pedestre() {
 
     run(velD, velE);
     ler_sensores();
-
-    // Se a linha normal for encontrada novamente, encerra
-  
   }
 
   stop_motors();
@@ -516,16 +410,37 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   }
 }
 
-void verifica_estado_led() {
-  // verifica se o led ta ligado
-  if (ledLigado) {
-    // verifica se o led ta ligado por mais de 3 segundos
-    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
-      digitalWrite(LED_LEFT, LOW);
-      digitalWrite(LED_RIGHT, LOW);
-      ledLigado = false;
-    }
+/**
+ * @brief Executes the reverse gear challenge.
+ * 
+ * The robot stops, moves backward for a fixed duration, stops again,
+ * and then turns 90 degrees to the specified side.
+ * 
+ * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ */
+void realiza_marcha_re(int lado_da_curva) {
+  if (debugSD) write_sd(7);
+  stop_motors();
+  delay(500);
+
+  // 2. Execute a ré por um tempo fixo
+  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  delay(1000);
+
+  // 3. Pare novamente
+  stop_motors();
+  delay(500);
+
+  // 4. Turn to the side of the second marker, as per the rules
+  if (lado_da_curva == SAIDA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  } else {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
   }
+
+  stop_motors();
 }
 
 bool tenta_recuperar_linha() {
@@ -567,36 +482,49 @@ bool tenta_recuperar_linha() {
  * @param jaContou Reference to a flag indicating if the current marker has already been counted.
  * @return int The updated marker count.
  */
-int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
-  if (estadoSensor == PRETO && !jaContou) {
-    // Activate the lock to prevent recounting
-    jaContou = true; 
-    return contagemAtual + 1;
-  } else if (estadoSensor == BRANCO) {
-    // Reset the lock when white is seen
-    jaContou = false; 
+int contadorBranco = 0;
+int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco) {
+  const int TOLERANCIA_MARCACAO = 3;  // nº mínimo de leituras consecutivas no branco
+
+  if (estadoSensor == BRANCO) {
+      contadorBranco++;
+      // Só conta se atingiu o limiar e ainda não tinha contado
+      if (contadorBranco >= TOLERANCIA_MARCACAO && !jaContou) {
+          jaContou = true;
+          return contagemAtual + 1;
+      }
+  } else {
+      // Reset quando sai do branco
+      contadorBranco = 0;
+      jaContou = false;
   }
-  // Return the count unchanged
-  return contagemAtual; 
+  return contagemAtual;
 }
+
 
 
 void analisa_marcacoes() {
   unsigned long tempoUltimaDeteccao = millis();
-
+  jaContouEsquerda = false;
+  jaContouDireita = false;
+  
   // If there is a curve, store the number of markers
-  while(erro != LINHA_NAO_DETECTADA && (millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+  while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
     // Update sensor values
     ler_sensores();
 
     if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
       // Se detectou, reseta o cronômetro do timeout
-      tempoUltimaDeteccao = millis();
+      //tempoUltimaDeteccao = millis();
     }
     
     // conta as marcacoes
-    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
-    marcacoesDireita = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
+    static int contadorBrancoEsq = 0;
+    static int contadorBrancoDir = 0;
+
+    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq);
+    marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir);
+
 
     // Ensure the robot stays on the line
     calcula_erro();
