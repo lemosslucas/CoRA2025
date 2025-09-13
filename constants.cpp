@@ -22,8 +22,8 @@ const int OFFSET_MOTORS = 5;
 const int velocidadeBase = 210;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
-int velocidadeDireita = 255;
-int velocidadeEsquerda = 255;
+int velocidadeDireita = 0;
+int velocidadeEsquerda = 0;
 
 
 // --- Timeouts ---
@@ -61,11 +61,11 @@ bool ledLigado = false;
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
-int estado_desafio_re = 0; // 0 = Normal, 1 = Viu a primeira marca, 2 = Viu a segunda marca
-int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
-bool inversaoAtiva = false;
+int estado_robo = 0; // 
+int ultimo_lado_re = -1; // 0 = Esquerda, 1 = Direita, -1 = Nenhum
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 bool jaContouEsquerda = false, jaContouDireita = false;
+bool inversaoAtiva = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
 float anguloSetPointGlobal = 0.0;
@@ -74,4 +74,4 @@ float anguloSetPointGlobal = 0.0;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = false;
+bool debugSD = true;

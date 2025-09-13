@@ -1,6 +1,5 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
-
 #include <Arduino.h>
 #include <MPU6050_tockn.h>
 
@@ -72,16 +71,15 @@ extern bool debugSD;
 extern MPU6050 mpu;
 extern float gyro_bias_z;
 
-extern int estado_desafio_re; 
-extern int lado_primeira_marca_re; 
+extern int estado_robo; 
+extern int ultimo_lado_re; 
 
 extern int tempoLedLigou;
-extern const int TEMPO_MAX_LED_LIGADO;
 extern bool ledLigado;
+extern const int TEMPO_MAX_LED_LIGADO;
 extern const int TIMEOUT_90_CURVE;
 extern const int TOLERANCIA_INVERSAO;
 extern const int TOLERANCIA_CURVA_90;
-extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
 extern const int TIMEOUT_MARCACAO;
 extern const int TIME_WITHOUT_LINE;
@@ -90,8 +88,9 @@ extern int marcacoesDireita, marcacoesEsquerda;
 
 extern bool jaContouEsquerda, jaContouDireita;
 
+extern bool inversaoAtiva;
 extern bool inversao_finalizada;
 extern const int TIMEOUT_PERIODO_FAIXA;
 extern int ultima_posicao_linha;
-extern float anguloSetPointGlobal;
+
 #endif // CONSTANTS_H

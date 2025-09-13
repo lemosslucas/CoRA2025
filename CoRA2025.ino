@@ -20,8 +20,7 @@ File logFile;
 void setup() {
   // Initialize serial communication
   if (debugMode) Serial.begin(9600);
-  if (debugSD) setup_sd();
-  
+
   // Sensor initialization
   pinMode(sensor_esquerda, INPUT);
   pinMode(sensor_esquerda_central, INPUT);
@@ -42,8 +41,10 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
-  definirSetPointInicial_Quadrante();
+  definirSetPointInicial();
   //mpu.calcGyroOffsets(true);
+
+  if (debugSD) setup_sd();
   
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
@@ -197,18 +198,18 @@ void setup_sd() {
     tempoLedLigou = millis();
     return;
   }
-
-  // --- CÓDIGO MODIFICADO ---
-  char newFileName[16]; // Array para guardar o nome do arquivo. Ex: "L135_99.TXT"
-
-  // Procura o primeiro índice disponível
+  
+  String baseName = "L" + String((int)Kp); // Ex: "L100"
+  String newFileName;
+  
+  // 2. Procure o primeiro índice disponível
   for (int i = 0; i < 100; i++) {
-    // Formata o nome do arquivo de forma segura usando snprintf
-    snprintf(newFileName, sizeof(newFileName), "L%d_%d.TXT", (int)Kp, i);
+    // Formato final será algo como "L100_0.TXT" (7 caracteres + extensão)
+    newFileName = baseName + "_" + String(i) + ".TXT"; 
     
-    // Verifica se o arquivo NÃO existe
+    // 3. Verifica se o arquivo NÃO existe
     if (!SD.exists(newFileName)) {
-      break; // Encontrou um nome disponível
+      break; 
     }
   }
 
@@ -217,15 +218,15 @@ void setup_sd() {
     Serial.println(newFileName);
   }
 
-  // Abre o novo arquivo para escrita
+  // 4. Abre o novo arquivo para escrita.
   logFile = SD.open(newFileName, FILE_WRITE);
-  // --- FIM DA MODIFICAÇÃO ---
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.flush();
+    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    logFile.flush(); 
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
+    // Se falhar mesmo com o nome curto, o problema é outro.
     if(debugMode) Serial.println("Failed to create the log file.");
   }
 }
@@ -239,9 +240,6 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(erro);
     logFile.print(",");
     logFile.print(challenge_marker);
-    logFile.print(",");
-    mpu.update();
-    logFile.print(mpu.getAngleZ());
     logFile.print(",");
     logFile.print(velocidadeDireita);
     logFile.print(",");
@@ -282,106 +280,76 @@ const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 unsigned long delay_tempo_ult_dec_curva = 0;
 bool nao_detectar_curva = false;
 
-void loop() {  
-  // verifica o estado do led
+
+
+// CoRA2025.ino
+
+void loop() {
   verifica_estado_led();
-
-  if (!debugMode) {
+  
+  if(debugMode) {
     ler_sensores();
-    int posicao = calcula_posicao(SENSOR);
-
-  if (posicao != 0) {
-    ultima_posicao_linha = posicao;  // guarda última leitura válida
+    imprime_serial();
+    return;
   }
-    // verifica se tem uma curva de 90
-    int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-    if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
-      if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
-        if (debugSD) write_sd(2);
-        //realiza_faixa_de_pedestre();
-        faixa_de_pedestre = false;
-      }
-    }
-    
-    if (saidaCurva == CURVA_NAO_ENCONTRADA) {
-      calcula_erro();
-      
-      if (erro != LINHA_NAO_DETECTADA) {
-        // segue normalmente
-        calcula_PID();
-        ajusta_movimento();
 
-        if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
-          tentativasRecuperacao = 0;
-        }
-
-        if (debugSD) write_sd(0);
-        contadorLinhaPerdida = 0; // reset se achou a linha
-      } else if (erro == LINHA_NAO_DETECTADA) {
-        // perdeu a linha
-        if (contadorLinhaPerdida == 0) {
-          tempoSemLinha = millis(); // marca quando perdeu
-        }
-        contadorLinhaPerdida++;
-
-        // verifica se a perda já é relevante (por contagem OU tempo)
-        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
-              
-          stop_motors();
-
-          // tenta recuperar a linha
-          if (tenta_recuperar_linha()) {
-            contadorLinhaPerdida = 0; // recuperou com sucesso
-            tentativasRecuperacao++;
-            tempoUltimaRecuperacao = millis();
-            
-            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) {
-              run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-              delay(1500);  
-              // já tentou muitas vezes → para definitivo
-              erro = erroAnterior;
-              if (debugSD) write_sd(3);
-              area_de_parada();
-            }
-          } else {
-            erro = erroAnterior;
-            if (debugSD) write_sd(3); // Log challenge 3: Stop area
-            area_de_parada(); // não conseguiu → para
-          }
-        }
-      }
-    } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      if (nao_detectar_curva) {
-        delay_tempo_ult_dec_curva = millis();
-      }
-
-     if (!inversaoAtiva) {
-            turn_90(saidaCurva);
-            run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-            delay(200);
-          }
-      
-      /*
-      analisa_marcacoes();
-      if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
-        turn_90(saidaCurva);
-      } 
-      */
-
-      // implementacao posterior da rotatoria e da marca re
-      //
-      //
-
-      stop_motors();
-    }
-  } else { 
-    if (debugMotor) {
-      test_motors();
-    } else {
-      // Get the output of the car's data
+  switch (estado_robo) {
+    case 0: // ESTADO_SEGUINDO_LINHA
+    { 
       ler_sensores();
-      imprime_serial();
+
+      int posicao = calcula_posicao(SENSOR);
+      if (posicao != 0) {
+        ultima_posicao_linha = posicao;
+      }
+      
+      if (faixa_de_pedestre && calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+        realiza_faixa_de_pedestre();
+        faixa_de_pedestre = false;
+        break;
+      }
+
+      if (SENSOR_CURVA[0] == PRETO || SENSOR_CURVA[1] == PRETO) {
+          estado_robo = 1;
+          break; 
+      }
+
+      calcula_erro();
+      if (erro != LINHA_NAO_DETECTADA) {
+          calcula_PID();
+          ajusta_movimento();
+      } else {
+          if (!tenta_recuperar_linha()) {
+              area_de_parada();
+          }
+      }
     }
+    break;
+
+    case 1: // ESTADO_ANALISANDO_MARCADORES
+    { 
+      analisa_marcacoes();
+
+      if (marcacoesEsquerda >= 1 && marcacoesDireita >= 1) {
+          realiza_marcha_re(ultimo_lado_re);
+      
+      } else if (marcacoesDireita >= 2 && marcacoesEsquerda == 0) {
+          int saida = determina_saida_rotatoria(SAIDA_DIREITA, marcacoesDireita);
+          realiza_rotatoria(SAIDA_DIREITA, saida);
+
+      } else if (marcacoesDireita == 1 && marcacoesEsquerda == 0) {
+          turn_90(CURVA_DIREITA);
+
+      } else if (marcacoesEsquerda == 1 && marcacoesDireita == 0) {
+          turn_90(CURVA_ESQUERDA);
+
+      } else {
+          run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+          delay(200);
+      }
+
+      estado_robo = 0;
+    }
+    break;
   }
-  delay(5);
 }
