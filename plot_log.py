@@ -7,17 +7,19 @@ from scipy.signal import find_peaks, savgol_filter
 
 # Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
 challenge_map = {
-    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
+    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
     2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
     3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
-    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
+    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
-    6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'v', 'size': 100},
-    7: {'label': 'Ré', 'color': 'pink', 'marker': 'v', 'size': 100},
+    6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'x', 'size': 100},
+    7: {'label': 'Ré', 'color': 'pink', 'marker': 'x', 'size': 100},
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
-    9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
+    9: {'label': 'Analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
     10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
     11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
+    12: {'label': 'Reajuste faixa', 'color': 'red', 'marker': 'o', 'size': 40},
+    13: {'label': 'evitando curva', 'color': 'red', 'marker': 'x', 'size': 40},
 }
 
 
@@ -236,10 +238,10 @@ def plot_data(df, Kp, Ki, Kd):
     ax1.legend()
 
     # Plot 2: PID Component Contributions
-    ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed Trend', color='green', linewidth=2.5)
+    ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed_Error', color='green', linewidth=2.5)
     ax2.set_title('Smoothed_Error vs Time')
-    ax2.set_ylabel('Error Smoothed')
-    ax2.set_ylim(-6, 6) # Set fixed y-axis for error
+    ax2.set_ylabel('Smoothed_Error')
+    #ax2.set_ylim(-6, 6) # Set fixed y-axis for error
     ax2.grid(True)
     ax2.legend()
 
@@ -484,7 +486,7 @@ def change_log_directory(current_dir):
         return current_dir
 
 def main():
-    log_dir = "D:\\"
+    log_dir = "E:\\"
 
     while True:
         clear_screen()

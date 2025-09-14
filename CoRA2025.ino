@@ -20,7 +20,8 @@ File logFile;
 void setup() {
   // Initialize serial communication
   if (debugMode) Serial.begin(9600);
-
+  if (debugSD) setup_sd();
+  
   // Sensor initialization
   pinMode(sensor_esquerda, INPUT);
   pinMode(sensor_esquerda_central, INPUT);
@@ -41,9 +42,6 @@ void setup() {
 
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
-  //mpu.calcGyroOffsets(true);
-
-  if (debugSD) setup_sd();
   
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LED_LEFT, HIGH);
@@ -102,7 +100,9 @@ void calcula_erro() {
   ler_sensores();
 
   // Check for inversion, signaling a pedestrian crossing
-  if (verifica_inversao(SENSOR, SENSOR_CURVA) && !faixa_de_pedestre) {
+  verifica_inversao(SENSOR, SENSOR_CURVA);
+
+  if (inversao_finalizada) {
     faixa_de_pedestre = true;
   }
 
@@ -190,23 +190,19 @@ void imprime_serial() {
 void setup_sd() {
   if (!SD.begin(chipSelect)) {
     if (debugMode) Serial.println("SD Card initialization failed!");
-    digitalWrite(LED_LEFT, HIGH);
-    ledLigado = true;
-    tempoLedLigou = millis();
     return;
   }
-  
-  String baseName = "L" + String((int)Kp); // Ex: "L100"
-  String newFileName;
-  
-  // 2. Procure o primeiro índice disponível
+
+  char newFileName[16]; 
+
+  // Procura o primeiro índice disponível
   for (int i = 0; i < 100; i++) {
-    // Formato final será algo como "L100_0.TXT" (7 caracteres + extensão)
-    newFileName = baseName + "_" + String(i) + ".TXT"; 
+    // Formata o nome do arquivo de forma segura usando snprintf
+    snprintf(newFileName, sizeof(newFileName), "L%d_%d.TXT", (int)Kp, i);
     
-    // 3. Verifica se o arquivo NÃO existe
+    // Verifica se o arquivo NÃO existe
     if (!SD.exists(newFileName)) {
-      break; 
+      break; // Encontrou um nome disponível
     }
   }
 
@@ -215,15 +211,15 @@ void setup_sd() {
     Serial.println(newFileName);
   }
 
-  // 4. Abre o novo arquivo para escrita.
+  // Abre o novo arquivo para escrita
   logFile = SD.open(newFileName, FILE_WRITE);
 
   if (logFile) {
-    logFile.println("Time,Error,Challenge,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.flush(); 
+    //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
+    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1"); 
+    logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
-    // Se falhar mesmo com o nome curto, o problema é outro.
     if(debugMode) Serial.println("Failed to create the log file.");
   }
 }
@@ -238,6 +234,19 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(challenge_marker);
     logFile.print(",");
+    //mpu.update();
+    //logFile.print(mpu.getAngleZ());
+    //logFile.print(",");
+    logFile.print(marcacoesDireita);
+    logFile.print(",");
+    logFile.print(marcacoesEsquerda);
+    logFile.print(",");
+
+    logFile.print(tempoMarcacaoDireita);
+    logFile.print(",");
+    logFile.print(tempoMarcacaoEsquerda);
+    logFile.print(",");
+
     logFile.print(velocidadeDireita);
     logFile.print(",");
     logFile.print(velocidadeEsquerda);
@@ -283,8 +292,24 @@ void loop() {
 
   if (!debugMode) {
     ler_sensores();
+    int posicao = calcula_posicao(SENSOR);
+
+    if (posicao != 0) {
+      ultima_posicao_linha = posicao;  // guarda última leitura válida
+    }
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+    if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
+      saidaCurva = CURVA_NAO_ENCONTRADA; 
+    }
+
+    if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
+      if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+        if (debugSD) write_sd(2);
+        realiza_faixa_de_pedestre();
+        faixa_de_pedestre = false;
+      }
+    }
     
   if (saidaCurva == CURVA_NAO_ENCONTRADA && !faixa_de_pedestre) {
       // calcula erro
@@ -341,27 +366,38 @@ void loop() {
           }
         }
       }
-     else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      if (nao_detectar_curva) {
-        delay_tempo_ult_dec_curva = millis();
+    } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+      // evita ligar no cruzamento
+      if (calcula_sensores_ativos(SENSOR) > 1) {
+        if (!inversaoAtiva) {
+          marcacoesDireita = 0;
+          marcacoesEsquerda = 0;
+
+          analisa_marcacoes();
+          
+          if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
+            unsigned long deltaTempo;
+            if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
+              deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
+            } else {
+              deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
+            }
+
+            if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
+              realiza_marcha_re(saidaCurva);
+            } else {
+              turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
+              if (debugSD) write_sd(6);
+            }
+          } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
+            //realiza_rotatoria();
+          } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+            turn_90(saidaCurva);
+          }
+        }
+        
+        stop_motors();
       }
-
-      turn_90(saidaCurva);
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      delay(200);
-      
-      /*
-      analisa_marcacoes();
-      if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
-        turn_90(saidaCurva);
-      } 
-      */
-
-      // implementacao posterior da rotatoria e da marca re
-      //
-      //
-
-      stop_motors();
     }
   } else { 
     if (debugMotor) {

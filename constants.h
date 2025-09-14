@@ -18,7 +18,7 @@
 #define CURVA_ESQUERDA 1
 #define CURVA_DIREITA 2
 //#define CURVA_EM_DUVIDA CURVA_DIREITA // mudar no dia
-#define CURVA_EM_DUVIDA 3
+#define CURVA_EM_DUVIDA CURVA_ESQUERDA
 #define ANGLE_CURVE 120
 
 #define DETECCAO_POR_QUADRADO 1
@@ -85,12 +85,20 @@ extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
 extern const int TIMEOUT_MARCACAO;
 extern const int TIME_WITHOUT_LINE;
-extern const int TIMEOUT_INVERSAO;
-extern const int TIMEOUT_PERIODO_FAIXA;
-extern const int TOLERANCIA_FAIXA;
-extern int contadorFaixa;        
+
+extern const unsigned long DEBOUNCE_TEMPO_CURVA;
 extern int marcacoesDireita, marcacoesEsquerda;
 
 extern bool jaContouEsquerda, jaContouDireita;
 
+extern bool inversao_finalizada;
+extern const int TIMEOUT_PERIODO_FAIXA;
+extern int ultima_posicao_linha;
+extern float anguloSetPointGlobal;
+
+extern unsigned long tempoUltimaCurva;
+
+extern unsigned long tempoMarcacaoDireita;
+extern unsigned long tempoMarcacaoEsquerda;
+extern const int TOLERANCIA_TEMPO_SIMULTANEO;
 #endif // CONSTANTS_H

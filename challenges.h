@@ -20,6 +20,13 @@ void verifica_estado_led();
 bool tenta_recuperar_linha();
 void analisa_marcacoes();
 void area_de_parada();
+int calcula_posicao(int SENSOR[]);
+
+void definirSetPointInicial_Quadrante();
+void girarParaAnguloAbsoluto(float anguloAlvo, int velocidadeGiro = 150);
+void alinharParaCardealMaisProximo();
+
+
 
 
 #endif

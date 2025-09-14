@@ -3,7 +3,17 @@
 #include "constants.h"
 #include "CoRA2025.h"
 
-
+void verifica_estado_led() {
+  // verifica se o led ta ligado
+  if (ledLigado) {
+    // verifica se o led ta ligado por mais de 3 segundos
+    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
+      digitalWrite(LED_LEFT, LOW);
+      digitalWrite(LED_RIGHT, LOW);
+      ledLigado = false;
+    }
+  }
+}
 
 /**
  * @brief Calculates the number of active sensors.
@@ -88,14 +98,16 @@ int calcula_posicao(int SENSOR[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
-
+  
   unsigned long startTime = millis();
   // This timeout prevents the robot from getting stuck if it misreads the sensors.
-  while ((millis() - startTime < TIMEOUT_90_CURVE)) {
+  // (millis() - startTime < TIMEOUT_90_CURVE)
+  while (calcula_sensores_ativos(SENSOR) <= 1) {
     // Move straight forward, not using line-following logic here.
     run(velocidadeBaseDireita, velocidadeBaseEsquerda);
     ler_sensores(); // Keep updating sensor values to check the condition.
   }
+  delay(200);
   
   int posicao = calcula_posicao(SENSOR);
 
@@ -125,6 +137,18 @@ void turn_90(int curvaEncontrada) {
 
   stop_motors();
   delay(100); 
+  // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
+  while (true) {
+    if (debugSD) write_sd(13);
+    calcula_erro();
+    calcula_PID();
+    ajusta_movimento();
+    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+      break;
+    }
+  }
+
+  tempoUltimaCurva = millis();
 }
 
 
@@ -188,7 +212,6 @@ void turn_until_angle(int target_angle = 90) {
   if (debugMode) Serial.println("Rotation finished");
 }
 
-
 /**
  * @brief Inverts the value obtained from a sensor.
  * 
@@ -205,39 +228,24 @@ int inverte_sensor(int sensor){
   return 1;
 }
 
-
 unsigned long tempoInversaoAtivada = 0;
 
-/**
- * @brief Checks for a track color inversion.
- * 
- * This function determines if a track color inversion (black/white to white/black)
- * has occurred. If detected, it inverts the main sensor values to allow the
- * robot to continue following the line.
- * 
- * @param SENSOR Array containing the states of the main sensors. This array is modified in place.
- * @param SENSOR_CURVA Array containing the states of the curve sensors.
- * @note The current implementation detects an inversion if exactly one main sensor is active.
- * @note The SENSOR_CURVA parameter is not currently used in this function.
- * 
- * @return bool Returns true if an inversion was detected and handled, false otherwise.
- */
-// Coloque esta versão corrigida no seu arquivo challenges.cpp
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int ativos = calcula_sensores_ativos(SENSOR);
-  return false;
-  if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-      inversaoAtiva = true;
-      tempoInversaoAtivada = millis();
-      if (debugSD) write_sd(10);
+
+  if (ativos == 1 && !inversaoAtiva && SENSOR[2] == PRETO && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+    inversaoAtiva = true;
+    tempoInversaoAtivada = millis();
+    if (debugSD) write_sd(10);
   }
 
   if (inversaoAtiva && millis() - tempoInversaoAtivada > 1000) { // só desliga depois de 200ms
-      if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-          inversaoAtiva = false;
-          if (debugSD) write_sd(11);
-          return false;
-      }
+    if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+      inversaoAtiva = false;
+      if (debugSD) write_sd(11);
+      inversao_finalizada = true;
+      return false;
+    }
   }
 
 
@@ -252,71 +260,41 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   // Se não entrou na lógica, retorna false.
   return false;
 }
-/**
- * @brief Handles the pedestrian crossing challenge.
- * 
- * This function simulates the robot's behavior at a pedestrian crossing.
- * It waits for a minimum required time (6 seconds) and then moves forward
- * to cross the track.
- */
+
+
 void realiza_faixa_de_pedestre() {
-  stop_motors();
-  if (debugSD) write_sd(2); 
-  // Wait for the minimum time of 6 seconds to cross
-  delay(TIMEOUT_FAIXA_PEDESTRE);
-
-  //avanca em linha reta com velocidade constante
-  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(TIMEOUT_PERIODO_FAIXA);
-  
-  /*
-  int inicio = millis();
-  while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
-    ler_sensores();
-    calcula_erro();
-    if (erro == LINHA_NAO_DETECTADA) erro = 0;
-    int posicao = calcula_posicao(SENSOR);
-    int ajuste = posicao * 10;  
-
-    erro = ajuste / 10;
-    ajusta_movimento();
-  }
-  */
-}
-
-/**
- * @brief Executes the reverse gear challenge.
- * 
- * The robot stops, moves backward for a fixed duration, stops again,
- * and then turns 90 degrees to the specified side.
- * 
- * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
- */
-void realiza_marcha_re(int lado_da_curva) {
-  if (debugSD) write_sd(7);
-  stop_motors();
-  delay(500);
-
-  // 2. Execute a ré por um tempo fixo
+  // --- Dá ré curta para se posicionar antes da faixa ---
   run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(1000);
-
-  // 3. Pare novamente
+  delay(150);
   stop_motors();
-  delay(500);
+  delay(TIMEOUT_FAIXA_PEDESTRE); // Pausa para estabilizar o MPU
 
-  // 4. Turn to the side of the second marker, as per the rules
-  if (lado_da_curva == SAIDA_DIREITA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  } else {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
+  if (debugSD) write_sd(2);
+
+  // --- FASE 2: Travessia da faixa em linha reta ---
+  if (debugMode) Serial.println("Alinhamento concluído. Atravessando a faixa...");
+  float anguloReferencia = mpu.getAngleZ();
+  float Kp_gyro = 50.0; 
+
+  unsigned long inicio = millis();
+  while (millis() - inicio < TIMEOUT_PERIODO_FAIXA) {
+    mpu.update();
+    float anguloAtual = mpu.getAngleZ();
+    float erro = anguloReferencia - anguloAtual;
+
+    // Correção proporcional simples
+    int correcao = (int)(Kp_gyro * erro);
+
+    int velD = constrain(velocidadeBaseDireita - correcao, 0, 255);
+    int velE = constrain(velocidadeBaseEsquerda + correcao, 0, 255);
+
+    run(velD, velE);
+    ler_sensores();
   }
 
   stop_motors();
-}
-
+  delay(100);
+} 
 /**
  * @brief Determines the exit direction for a challenge based on marker counts.
  * 
@@ -392,8 +370,8 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   // 2. Navega na rotatória até encontrar a saída correta
   while (saidaAtual < saidaDesejada) {
     // Lógica principal de seguir linha é executada em todos os ciclos
-    //calcula_erro();
-    //ajusta_movimento();
+    calcula_erro();
+    ajusta_movimento();
 
     // Assumindo que a rotatória é para a direita (sentido anti-horário)
     bool saida_detectada = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO);
@@ -434,16 +412,47 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   }
 }
 
-void verifica_estado_led() {
-  // verifica se o led ta ligado
-  if (ledLigado) {
-    // verifica se o led ta ligado por mais de 3 segundos
-    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
-      digitalWrite(LED_LEFT, LOW);
-      digitalWrite(LED_RIGHT, LOW);
-      ledLigado = false;
-    }
+/**
+ * @brief Executes the reverse gear challenge.
+ * 
+ * The robot stops, moves backward for a fixed duration, stops again,
+ * and then turns 90 degrees to the specified side.
+ * 
+ * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ */
+void realiza_marcha_re(int lado_da_curva) {
+  if (debugSD) write_sd(7);
+  stop_motors();
+  delay(500);
+
+  // 2. Execute a ré por um tempo fixo
+  while (calcula_sensores_ativos(SENSOR) > 1) {
+    run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores();
   }
+
+  // 3. Pare novamente
+  stop_motors();
+  delay(1000);
+
+  while (calcula_sensores_ativos(SENSOR) <= 1) {
+    // Move straight forward, not using line-following logic here.
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores(); // Keep updating sensor values to check the condition.
+  }
+  delay(200);
+
+  // 4. Turn to the side of the second marker, as per the rules
+  if (lado_da_curva == SAIDA_DIREITA) {
+    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  } else {
+    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    turn_until_angle(90);
+  }
+
+  stop_motors();
+  delay(1000);
 }
 
 bool tenta_recuperar_linha() {
@@ -485,38 +494,60 @@ bool tenta_recuperar_linha() {
  * @param jaContou Reference to a flag indicating if the current marker has already been counted.
  * @return int The updated marker count.
  */
-int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou) {
-  if (estadoSensor == PRETO && !jaContou) {
-    // Activate the lock to prevent recounting
-    jaContou = true; 
-    return contagemAtual + 1;
-  } else if (estadoSensor == BRANCO) {
-    // Reset the lock when white is seen
-    jaContou = false; 
+int contadorBranco = 0;
+const int TOLERANCIA_MARCACAO = 3; 
+int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco, unsigned long &tempoMarcacao) {
+  // evita detectar cruzemnto
+  if (calcula_sensores_ativos(SENSOR) <= 1) return contagemAtual;
+  // evita bug de falso postiivo
+  
+  if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) return contagemAtual;
+
+  if (estadoSensor == BRANCO) {
+    contadorBranco++;
+    // Só conta se atingiu o limiar e ainda não tinha contado
+    if (contadorBranco >= TOLERANCIA_MARCACAO && !jaContou) {
+      jaContou = true;
+      tempoMarcacao = millis(); 
+      return contagemAtual + 1;
+    }
+  } else {
+    // Reset quando sai do branco
+    contadorBranco = 0;
+    jaContou = false;
   }
-  // Return the count unchanged
-  return contagemAtual; 
+  return contagemAtual;
 }
 
 
 void analisa_marcacoes() {
   unsigned long tempoUltimaDeteccao = millis();
-
+  jaContouEsquerda = false;
+  jaContouDireita = false;
+  
   // If there is a curve, store the number of markers
-  while(erro != LINHA_NAO_DETECTADA && (millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+  while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
     // Update sensor values
     ler_sensores();
-
-    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-      // Se detectou, reseta o cronômetro do timeout
-      tempoUltimaDeteccao = millis();
-    }
     
     // conta as marcacoes
-    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda);
-    marcacoesDireita = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita);
+    static int contadorBrancoEsq = 0;
+    static int contadorBrancoDir = 0;
+
+    int marcacoesAntesEsq = marcacoesEsquerda;
+    int marcacoesAntesDir = marcacoesDireita;
+
+    marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq, tempoMarcacaoEsquerda);
+    marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir, tempoMarcacaoDireita);
+
+    if (marcacoesEsquerda > marcacoesAntesEsq || marcacoesDireita > marcacoesAntesDir) {
+      tempoUltimaDeteccao = millis();
+    }
 
     // Ensure the robot stays on the line
+    calcula_erro();
+    calcula_PID();
+    ajusta_movimento();
     if (debugSD) write_sd(9);
   }
 }
