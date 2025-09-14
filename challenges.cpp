@@ -107,7 +107,7 @@ void turn_90(int curvaEncontrada) {
     run(velocidadeBaseDireita, velocidadeBaseEsquerda);
     ler_sensores(); // Keep updating sensor values to check the condition.
   }
-  delay(200);
+  delay(100);
   
   int posicao = calcula_posicao(SENSOR);
 
@@ -143,7 +143,7 @@ void turn_90(int curvaEncontrada) {
     calcula_erro();
     calcula_PID();
     ajusta_movimento();
-    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
+    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO && SENSOR[2] == BRANCO) {
       break;
     }
   }
@@ -553,6 +553,8 @@ void analisa_marcacoes() {
 }
 
 void area_de_parada() {
+  run(velocidadeBaseDireita - 5, velocidadeBaseEsquerda);
+  delay(1000); 
   stop_motors();
   digitalWrite(LED_LEFT, HIGH);
   digitalWrite(LED_RIGHT, HIGH);

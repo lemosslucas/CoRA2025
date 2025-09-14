@@ -25,8 +25,6 @@
 #define SAIDA_ESQUERDA 0
 #define SAIDA_DIREITA 1
 
-#define DELAY_LOST_LINE 1000
-
 //  Pinos dos Sensores 
 extern const int sensor_curva_esquerda;
 extern const int sensor_esquerda;
@@ -54,7 +52,6 @@ extern int velocidadeEsquerda;
 
 //  Variáveis do PID 
 extern const float Kp, Ki, Kd;
-extern const float Kcr, Pcr;
 extern float erro;
 extern float erroAnterior;
 extern float I, P, D, PID;
@@ -72,15 +69,10 @@ extern bool debugSD;
 extern MPU6050 mpu;
 extern float gyro_bias_z;
 
-extern int estado_desafio_re; 
-extern int lado_primeira_marca_re; 
 
 extern int tempoLedLigou;
 extern const int TEMPO_MAX_LED_LIGADO;
 extern bool ledLigado;
-extern const int TIMEOUT_90_CURVE;
-extern const int TOLERANCIA_INVERSAO;
-extern const int TOLERANCIA_CURVA_90;
 extern bool inversaoAtiva;
 extern const int TIMEOUT_FAIXA_PEDESTRE;
 extern const int TIMEOUT_MARCACAO;
@@ -94,7 +86,6 @@ extern bool jaContouEsquerda, jaContouDireita;
 extern bool inversao_finalizada;
 extern const int TIMEOUT_PERIODO_FAIXA;
 extern int ultima_posicao_linha;
-extern float anguloSetPointGlobal;
 
 extern unsigned long tempoUltimaCurva;
 

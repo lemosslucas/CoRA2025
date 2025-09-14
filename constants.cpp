@@ -27,7 +27,6 @@ int velocidadeEsquerda = 0;
 
 
 // --- Timeouts ---
-const int TIMEOUT_90_CURVE = 700;
 const int TIMEOUT_FAIXA_PEDESTRE = 5000;
 const int TIMEOUT_MARCACAO = 550;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
@@ -35,8 +34,6 @@ const int TIME_WITHOUT_LINE = 200;
 const int TIMEOUT_PERIODO_FAIXA = 2300;
 
 // --- Tolerâncias ---
-const int TOLERANCIA_CURVA_90 = 3;
-const int TOLERANCIA_INVERSAO = 15;
 const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
@@ -59,14 +56,11 @@ bool ledLigado = false;
 int saida_rotatoria = -1;
 bool faixa_de_pedestre = false;
 int saidaDesejada = 0;
-int estado_desafio_re = 0; // 0 = Normal, 1 = Viu a primeira marca, 2 = Viu a segunda marca
-int lado_primeira_marca_re = -1; // 0 = Esquerda, 1 = Direita
 bool inversaoAtiva = false;
 int marcacoesDireita = 0, marcacoesEsquerda = 0;
 bool jaContouEsquerda = false, jaContouDireita = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
-float anguloSetPointGlobal = 0.0;
 
 const unsigned long DEBOUNCE_TEMPO_CURVA = 2000;
 unsigned long tempoUltimaCurva = 0;

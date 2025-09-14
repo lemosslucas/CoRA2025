@@ -283,8 +283,6 @@ const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
 unsigned long tempoUltimaRecuperacao = 0;
 const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 
-unsigned long delay_tempo_ult_dec_curva = 0;
-bool nao_detectar_curva = false;
 
 void loop() {  
   // verifica o estado do led
@@ -343,9 +341,7 @@ void loop() {
             tentativasRecuperacao++;
             tempoUltimaRecuperacao = millis();
             
-            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) {
-              run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-              delay(1500);  
+            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
               // já tentou muitas vezes → para definitivo
               erro = erroAnterior;
               if (debugSD) write_sd(3);
@@ -400,5 +396,6 @@ void loop() {
       imprime_serial();
     }
   }
+
   delay(5);
 }
