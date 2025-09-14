@@ -29,7 +29,7 @@ int velocidadeEsquerda = 0;
 // --- Timeouts ---
 const int TIMEOUT_90_CURVE = 700;
 const int TIMEOUT_FAIXA_PEDESTRE = 5000;
-const int TIMEOUT_MARCACAO = 500;
+const int TIMEOUT_MARCACAO = 550;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
 const int TIMEOUT_PERIODO_FAIXA = 2300;
@@ -68,9 +68,12 @@ bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
 float anguloSetPointGlobal = 0.0;
 
+const unsigned long DEBOUNCE_TEMPO_CURVA = 2000;
+unsigned long tempoUltimaCurva = 0;
+
 unsigned long tempoMarcacaoDireita = 0;
 unsigned long tempoMarcacaoEsquerda = 0;
-const int TOLERANCIA_TEMPO_SIMULTANEO = 200;
+const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;

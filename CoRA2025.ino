@@ -299,6 +299,10 @@ void loop() {
     }
     // verifica se tem uma curva de 90
     int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+    if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
+      saidaCurva = CURVA_NAO_ENCONTRADA; 
+    }
+
     if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
       if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
         if (debugSD) write_sd(2);

@@ -7,18 +7,19 @@ from scipy.signal import find_peaks, savgol_filter
 
 # Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
 challenge_map = {
-    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
+    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
     2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
     3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
-    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
+    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
     5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
     6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'x', 'size': 100},
     7: {'label': 'Ré', 'color': 'pink', 'marker': 'x', 'size': 100},
     8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
-    9: {'label': 'analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
+    9: {'label': 'Analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
     10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
     11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
-    12: {'label': 'reajuste faixa', 'color': 'red', 'marker': 'o', 'size': 40},
+    12: {'label': 'Reajuste faixa', 'color': 'red', 'marker': 'o', 'size': 40},
+    13: {'label': 'evitando curva', 'color': 'red', 'marker': 'x', 'size': 40},
 }
 
 

@@ -140,6 +140,7 @@ void turn_90(int curvaEncontrada) {
   delay(100); 
   // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
   while (true) {
+    if (debugSD) write_sd(13);
     calcula_erro();
     calcula_PID();
     ajusta_movimento();
@@ -147,6 +148,8 @@ void turn_90(int curvaEncontrada) {
       break;
     }
   }
+
+  tempoUltimaCurva = millis();
 }
 
 
@@ -485,8 +488,11 @@ bool tenta_recuperar_linha() {
  */
 int contadorBranco = 0;
 int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco, unsigned long &tempoMarcacao) {
-  const int TOLERANCIA_MARCACAO = 5;  
-
+  const int TOLERANCIA_MARCACAO = 3;  
+  if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) {
+    return contagemAtual; // Retorna o valor atual sem fazer mais nada.
+  }
+  
   if (estadoSensor == BRANCO) {
     contadorBranco++;
     // Só conta se atingiu o limiar e ainda não tinha contado
@@ -505,6 +511,9 @@ int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &con
 
 
 void analisa_marcacoes() {
+  //marcacoesDireita = 0;
+  //marcacoesEsquerda = 0;
+  
   unsigned long tempoUltimaDeteccao = millis();
   jaContouEsquerda = false;
   jaContouDireita = false;
