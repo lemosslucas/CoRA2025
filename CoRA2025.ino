@@ -311,10 +311,18 @@ void loop() {
       }
     }
     
-    if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+  if (saidaCurva == CURVA_NAO_ENCONTRADA && !faixa_de_pedestre) {
+      // calcula erro
       calcula_erro();
-      
-      if (erro != LINHA_NAO_DETECTADA) {
+
+      if (faixa_de_pedestre) {
+          if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+            if (debugSD) write_sd(2);
+            realiza_faixa_de_pedestre();
+            faixa_de_pedestre = false;
+          }
+        }
+    } if (erro != LINHA_NAO_DETECTADA) {
         // segue normalmente
         calcula_PID();
         ajusta_movimento();
