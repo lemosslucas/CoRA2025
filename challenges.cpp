@@ -109,7 +109,6 @@ void turn_90(int curvaEncontrada) {
   }
   delay(200);
   
-  
   int posicao = calcula_posicao(SENSOR);
 
   // Ajuste proporcional (ex.: 10 graus por posição)
@@ -427,12 +426,21 @@ void realiza_marcha_re(int lado_da_curva) {
   delay(500);
 
   // 2. Execute a ré por um tempo fixo
-  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(1000);
+  while (calcula_sensores_ativos(SENSOR) > 1) {
+    run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores();
+  }
 
   // 3. Pare novamente
   stop_motors();
   delay(1000);
+
+  while (calcula_sensores_ativos(SENSOR) <= 1) {
+    // Move straight forward, not using line-following logic here.
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    ler_sensores(); // Keep updating sensor values to check the condition.
+  }
+  delay(200);
 
   // 4. Turn to the side of the second marker, as per the rules
   if (lado_da_curva == SAIDA_DIREITA) {
@@ -487,12 +495,14 @@ bool tenta_recuperar_linha() {
  * @return int The updated marker count.
  */
 int contadorBranco = 0;
+const int TOLERANCIA_MARCACAO = 3; 
 int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco, unsigned long &tempoMarcacao) {
-  const int TOLERANCIA_MARCACAO = 3;  
-  if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) {
-    return contagemAtual; // Retorna o valor atual sem fazer mais nada.
-  }
+  // evita detectar cruzemnto
+  if (calcula_sensores_ativos(SENSOR) <= 1) return contagemAtual;
+  // evita bug de falso postiivo
   
+  if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) return contagemAtual;
+
   if (estadoSensor == BRANCO) {
     contadorBranco++;
     // Só conta se atingiu o limiar e ainda não tinha contado
@@ -511,9 +521,6 @@ int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &con
 
 
 void analisa_marcacoes() {
-  //marcacoesDireita = 0;
-  //marcacoesEsquerda = 0;
-  
   unsigned long tempoUltimaDeteccao = millis();
   jaContouEsquerda = false;
   jaContouDireita = false;
@@ -527,8 +534,15 @@ void analisa_marcacoes() {
     static int contadorBrancoEsq = 0;
     static int contadorBrancoDir = 0;
 
+    int marcacoesAntesEsq = marcacoesEsquerda;
+    int marcacoesAntesDir = marcacoesDireita;
+
     marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq, tempoMarcacaoEsquerda);
     marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir, tempoMarcacaoDireita);
+
+    if (marcacoesEsquerda > marcacoesAntesEsq || marcacoesDireita > marcacoesAntesDir) {
+      tempoUltimaDeteccao = millis();
+    }
 
     // Ensure the robot stays on the line
     calcula_erro();

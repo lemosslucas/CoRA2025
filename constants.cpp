@@ -41,7 +41,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = 180, Ki = 0, Kd = 50;
+const float Kp = 180, Ki = 0, Kd = 100;
 
 float erro = 0;
 float erroAnterior = 0;

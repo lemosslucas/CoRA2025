@@ -359,35 +359,37 @@ void loop() {
         }
       }
     } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      
-      if (!inversaoAtiva) {
-        marcacoesDireita = 0;
-        marcacoesEsquerda = 0;
+      // evita ligar no cruzamento
+      if (calcula_sensores_ativos(SENSOR) > 1) {
+        if (!inversaoAtiva) {
+          marcacoesDireita = 0;
+          marcacoesEsquerda = 0;
 
-        analisa_marcacoes();
-        
-        if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
-          unsigned long deltaTempo;
-          if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
-            deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
-          } else {
-            deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
-          }
+          analisa_marcacoes();
+          
+          if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
+            unsigned long deltaTempo;
+            if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
+              deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
+            } else {
+              deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
+            }
 
-          if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
-            realiza_marcha_re(saidaCurva);
-          } else {
-            turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
-            if (debugSD) write_sd(6);
+            if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
+              realiza_marcha_re(saidaCurva);
+            } else {
+              turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
+              if (debugSD) write_sd(6);
+            }
+          } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
+            //realiza_rotatoria();
+          } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+            turn_90(saidaCurva);
           }
-        } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
-          //realiza_rotatoria();
-        } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
-          turn_90(saidaCurva);
         }
+        
+        stop_motors();
       }
-      
-      stop_motors();
     }
   } else { 
     if (debugMotor) {
