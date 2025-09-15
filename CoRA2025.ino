@@ -30,8 +30,7 @@ void setup() {
   pinMode(sensor_direita, INPUT);
   pinMode(sensor_curva_esquerda, INPUT);
   pinMode(sensor_curva_direita, INPUT);
-  pinMode(LED_LEFT, OUTPUT);
-  pinMode(LED_RIGHT, OUTPUT);
+  pinMode(LEDS, OUTPUT);
 
   // Gyroscope initialization
   Wire.begin();
@@ -44,8 +43,7 @@ void setup() {
   gyro_bias_z = calibrate_gyro();
   
   // liga os leds da cara para indicar que o robô iniciou
-  digitalWrite(LED_LEFT, HIGH);
-  digitalWrite(LED_RIGHT, HIGH);
+  digitalWrite(LEDS, HIGH);
   tempoLedLigou = millis();
   ledLigado = true;
 }
@@ -215,7 +213,7 @@ void setup_sd() {
 
   if (logFile) {
     //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1,Inclinacao"); 
+    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1"); 
     logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -258,15 +256,6 @@ void write_sd(int challenge_marker = 0) {
       logFile.print(",");
       logFile.print(SENSOR_CURVA[i]);
     }
-    logFile.print(",");
-    if (challenge_marker == 2 || challenge_marker == 14 || challenge_marker == 15) {
-      mpu.update();
-      logFile.print(mpu.getAngleZ());
-    } else {
-      logFile.print(0); 
-    }
-    //logFile.print(",");
-
     // Quebra de linha no final
     logFile.println();
 
@@ -287,6 +276,7 @@ const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
 unsigned long tempoUltimaRecuperacao = 0;
 const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 
+unsigned int qnt_fim_inversao =0;
 
 void loop() {  
   // verifica o estado do led
@@ -315,7 +305,12 @@ void loop() {
       }
 
       if (faixa_de_pedestre) {
+        // filtro de ruido
         if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+          qnt_fim_inversao += 1;
+        }
+
+        if (qnt_fim_inversao >= 3) {
           if (debugSD) write_sd(2);
           realiza_faixa_de_pedestre();
           faixa_de_pedestre = false;

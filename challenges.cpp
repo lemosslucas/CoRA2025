@@ -8,8 +8,7 @@ void verifica_estado_led() {
   if (ledLigado) {
     // verifica se o led ta ligado por mais de 3 segundos
     if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
-      digitalWrite(LED_LEFT, LOW);
-      digitalWrite(LED_RIGHT, LOW);
+      digitalWrite(LEDS, LOW);
       ledLigado = false;
     }
   }
@@ -98,59 +97,60 @@ int calcula_posicao(int SENSOR[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
-  
-  unsigned long startTime = millis();
-  // This timeout prevents the robot from getting stuck if it misreads the sensors.
-  // (millis() - startTime < TIMEOUT_90_CURVE)
-  while (calcula_sensores_ativos(SENSOR) <= 1) {
-    // Move straight forward, not using line-following logic here.
-    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    ler_sensores(); // Keep updating sensor values to check the condition.
-  }
-  delay(100);
-  
-  int posicao = calcula_posicao(SENSOR);
-
-  // Ajuste proporcional (ex.: 10 graus por posição)
-  int ajuste = posicao * 10;  
-
-  int anguloFinal = ANGLE_CURVE + ajuste;
-
-  // Stop the car for greater stability
-  stop_motors();
-  delay(200);
-
-  erro = erroAnterior;
-  if (curvaEncontrada == CURVA_ESQUERDA) {
-    if (debugSD) write_sd(1);
-    digitalWrite(LED_LEFT, HIGH);
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(anguloFinal); 
-    digitalWrite(LED_LEFT, LOW);
-  } else if (curvaEncontrada == CURVA_DIREITA) {
-    if (debugSD) write_sd(4);
-    digitalWrite(LED_RIGHT, HIGH);
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(anguloFinal);
-    digitalWrite(LED_RIGHT, LOW);
-  }
-
-  stop_motors();
-  delay(100); 
-  // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
-  while (true) {
-    if (debugSD) write_sd(13);
-    calcula_erro();
-    calcula_PID();
-    ajusta_movimento();
-    if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO && SENSOR[2] == BRANCO) {
-      break;
+  if (!inversaoAtiva) {
+    unsigned long startTime = millis();
+    // This timeout prevents the robot from getting stuck if it misreads the sensors.
+    // (millis() - startTime < TIMEOUT_90_CURVE)
+    while (calcula_sensores_ativos(SENSOR) <= 1) {
+      // Move straight forward, not using line-following logic here.
+      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      ler_sensores(); // Keep updating sensor values to check the condition.
     }
+    delay(100);
+    
+    int posicao = calcula_posicao(SENSOR);
+  
+    // Ajuste proporcional (ex.: 10 graus por posição)
+    int ajuste = posicao * 10;  
+  
+    int anguloFinal = ANGLE_CURVE + ajuste;
+  
+    // Stop the car for greater stability
+    stop_motors();
+    delay(200);
+  
+    erro = erroAnterior;
+    if (curvaEncontrada == CURVA_ESQUERDA) {
+      if (debugSD) write_sd(1);
+      digitalWrite(LEDS, HIGH);
+      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(anguloFinal); 
+      digitalWrite(LEDS, LOW);
+    } else if (curvaEncontrada == CURVA_DIREITA) {
+      if (debugSD) write_sd(4);
+      digitalWrite(LEDS, HIGH);
+      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_until_angle(anguloFinal);
+      digitalWrite(LEDS, LOW);
+    }
+  
+    stop_motors();
+    delay(100); 
+    // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
+    while (true) {
+      if (debugSD) write_sd(13);
+      calcula_erro();
+      calcula_PID();
+      ajusta_movimento();
+      if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO && SENSOR[2] == BRANCO) {
+        break;
+      }
+    }
+  
+    tempoUltimaCurva = millis();
+    // zera os valores da marcacao pra evitar falso positvo
+    marcacoesDireita = 0; marcacoesDireita = 0;
   }
-
-  tempoUltimaCurva = millis();
-  // zera os valores da marcacao pra evitar falso positvo
-  marcacoesDireita = 0; marcacoesDireita = 0;
 }
 
 
@@ -263,77 +263,57 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   return false;
 }
 
-int velocidadeRotacao = 140;
-/**
- * @brief Procura a linha girando no próprio eixo quando ela é perdida.
- * @return true se a linha for encontrada, false se o tempo de busca esgotar.
- */
-bool procura_linha_girando() {
-    // Tempo máximo que ele vai procurar para cada lado.
-    const int TEMPO_MAX_PROCURA = 1000; // 1.5 segundos
-    unsigned long tempoInicioGiro;
-
-    // --- ETAPA 1: Procura girando para a ESQUERDA ---
-    turn_left(velocidadeRotacao, velocidadeRotacao);
-    tempoInicioGiro = millis();
-
-    while (millis() - tempoInicioGiro < TEMPO_MAX_PROCURA) {
-        ler_sensores();
-        // Se qualquer sensor encontrar a linha preta
-        if (calcula_sensores_ativos(SENSOR) > 0) {
-            stop_motors();
-            return true; // Sucesso! Linha encontrada.
-        }
-        delay(10);
-    }
-
-    // --- ETAPA 2: Se não encontrou, procura para a DIREITA ---
-    // Gira por um tempo maior para compensar o giro anterior e varrer o outro lado.
-    turn_right(velocidadeRotacao, velocidadeRotacao);
-    tempoInicioGiro = millis();
-
-    while (millis() - tempoInicioGiro < (TEMPO_MAX_PROCURA * 2)) {
-        ler_sensores();
-        // Se qualquer sensor encontrar a linha preta
-        if (calcula_sensores_ativos(SENSOR) > 0) {
-            stop_motors();
-            return true; // Sucesso! Linha encontrada.
-        }
-        delay(10);
-    }
-
-    // --- ETAPA 3: Se falhou em ambas as tentativas, desiste ---
-    stop_motors();
-    return false; // Falha em encontrar a linha.
-}
-
 void realiza_faixa_de_pedestre() {
   if (debugSD) write_sd(2);
   stop_motors();
-  delay(TIMEOUT_FAIXA_PEDESTRE); // Pausa para estabilizar o MPU
+  delay(TIMEOUT_FAIXA_PEDESTRE); 
+  // precisa de uma logica que alinha com quase 100% de certeza para ele nao perder a linha q ele vai encontra na frente
+  
+  if (debugSD) write_sd(12);
+  unsigned long start = millis();
+  while (erro == LINHA_NAO_DETECTADA && millis() - start < 1500) {
+    ler_sensores();
+    calcula_erro();
+    run_backward(150, 150);
+  }
+  stop_motors();
+  
+  int pos = calcula_posicao(SENSOR); // -2..2
+  if (pos < -1) {
+    run(-velocidadeBaseDireita, velocidadeBaseEsquerda);
+  } else if (pos > 1) {
+    run(velocidadeBaseDireita, -velocidadeBaseEsquerda);
+  }
+
+  while (SENSOR[2] != BRANCO) {
+    ler_sensores();
+  }
+  
+  stop_motors();
+  delay(500);
 
   if (debugSD) write_sd(14);
   
   run(255, 255);
   delay(TIMEOUT_PERIODO_FAIXA);
 
-  if(debugSD) write_sd(15); // Log: Fim da travessia
-  
-  // adicione aq uma logica que calcular o erro do robo e pelo valor do sensor faz um giro para que encontre a linha
-  ler_sensores();
-    // Verifica se, após parar, o robô está fora da linha
-  if (calcula_sensores_ativos(SENSOR) == 0) {
-    // Se estiver fora, chama a função de busca
-    bool linhaEncontrada = procura_linha_girando();
-
-    // Se a busca falhar, o robô não encontrou a linha e deve parar.
-    if (!linhaEncontrada) {
-        area_de_parada();
+  if (SENSOR_CURVA[0] == BRANCO) {
+    while (SENSOR[2] != BRANCO) {
+      ler_sensores();
+      run(velocidadeBaseDireita, 0);
+    }
+  } else if (SENSOR_CURVA[1] == BRANCO) {
+    while (SENSOR[2] != BRANCO) {
+      ler_sensores();
+      run(0, velocidadeBaseEsquerda);
     }
   }
+  if(debugSD) write_sd(15); // Log: Fim da travessia
+  
   // Zera a flag para não entrar neste desafio novamente por engano
   inversao_finalizada = false;
 } 
+
 /**
  * @brief Determines the exit direction for a challenge based on marker counts.
  * 
@@ -602,8 +582,7 @@ void area_de_parada() {
   run(velocidadeBaseDireita - 5, velocidadeBaseEsquerda);
   delay(1000); 
   stop_motors();
-  digitalWrite(LED_LEFT, HIGH);
-  digitalWrite(LED_RIGHT, HIGH);
+  digitalWrite(LEDS, HIGH);
   tempoLedLigou = millis();
   ledLigado = true;
   if (debugMode) Serial.println("Área de parada detectada. Robô parado.");

@@ -48,8 +48,7 @@ float I = 0, P = 0, D = 0, PID = 0;
 
 
 // --- LEDs ---
-const int LED_LEFT = 7;
-const int LED_RIGHT = (!debugSD) ? 10 : NULL;
+const int LEDS = 7;
 int tempoLedLigou = 0;
 bool ledLigado = false;
 
