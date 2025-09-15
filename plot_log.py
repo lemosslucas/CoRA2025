@@ -7,19 +7,21 @@ from scipy.signal import find_peaks, savgol_filter
 
 # Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
 challenge_map = {
-    1: {'label': 'Curva Direita', 'color': 'pink', 'marker': 'v', 'size': 100},
-    2: {'label': 'Faixa de Pedestre', 'color': 'darkviolet', 'marker': 's', 'size': 80},
-    3: {'label': 'Área de Parada', 'color': 'red', 'marker': 'X', 'size': 120},
-    4: {'label': 'Curva Esquerda', 'color': 'gold', 'marker': 'v', 'size': 100},
-    5: {'label': 'Recuperando a linha', 'color': 'red', 'marker': 'x', 'size': 100},
-    6: {'label': 'Curva Duvida', 'color': 'gold', 'marker': 'x', 'size': 100},
-    7: {'label': 'Ré', 'color': 'pink', 'marker': 'x', 'size': 100},
-    8: {'label': 'Rotatoria', 'color': 'pink', 'marker': 'v', 'size': 100},
-    9: {'label': 'Analisando contorno', 'color': 'silver', 'marker': '^', 'size': 100},
-    10: {'label': 'linha_invertida', 'color': 'orange', 'marker': 's', 'size': 80},
-    11: {'label': 'Inversão finalizada', 'color': 'green', 'marker': 'o', 'size': 80},
-    12: {'label': 'Reajuste faixa', 'color': 'red', 'marker': 'o', 'size': 40},
-    13: {'label': 'evitando curva', 'color': 'red', 'marker': 'x', 'size': 40},
+    1: {'color': 'deepskyblue', 'label': 'Curva Direita', 'marker': 'v', 'size': 100},
+    2: {'color': 'gold', 'label': 'Faixa de Pedestre', 'marker': 's', 'size': 80},
+    3: {'color': 'red', 'label': 'Área de Parada', 'marker': '.', 'size': 120},
+    4: {'color': 'dodgerblue', 'label': 'Curva Esquerda', 'marker': 'v', 'size': 100},
+    5: {'color': 'magenta', 'label': 'Recuperando a linha', 'marker': 'o', 'size': 100},
+    6: {'color': 'gold', 'label': 'Curva Duvida', 'marker': '^', 'size': 100},
+    7: {'color': 'black', 'label': 'Ré', 'marker': '<', 'size': 100},
+    8: {'color': 'purple', 'label': 'Rotatoria', 'marker': '>', 'size': 100},
+    9: {'color': 'orange', 'label': 'Analisando contorno', 'marker': '8', 'size': 100},
+    10: {'color': 'blue', 'label': 'linha_invertida', 'marker': 's', 'size': 80},
+    11: {'color': 'pink', 'label': 'Inversão finalizada', 'marker': 'p', 'size': 80},
+    12: {'color': 'darkorange', 'label': 'Reajuste faixa', 'marker': 's', 'size': 40},
+    13: {'color': 'olive', 'label': 'evitando curva', 'marker': '*', 'size': 40},
+    14: {'color': 'orangered', 'label': 'travessia faixa', 'marker': 's', 'size': 70},
+    15: {'color': 'red', 'label': 'fim de travessia', 'marker': 's', 'size': 70}
 }
 
 

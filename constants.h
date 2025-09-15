@@ -18,7 +18,7 @@
 #define CURVA_ESQUERDA 1
 #define CURVA_DIREITA 2
 //#define CURVA_EM_DUVIDA CURVA_DIREITA // mudar no dia
-#define CURVA_EM_DUVIDA CURVA_ESQUERDA
+#define CURVA_EM_DUVIDA CURVA_DIREITA // ta invertida
 #define ANGLE_CURVE 120
 
 #define DETECCAO_POR_QUADRADO 1
@@ -88,6 +88,7 @@ extern const int TIMEOUT_PERIODO_FAIXA;
 extern int ultima_posicao_linha;
 
 extern unsigned long tempoUltimaCurva;
+extern bool arrancadaMode;
 
 extern unsigned long tempoMarcacaoDireita;
 extern unsigned long tempoMarcacaoEsquerda;

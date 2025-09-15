@@ -19,7 +19,7 @@ float gyro_bias_z = 0.0;
 
 // --- Motores ---
 const int OFFSET_MOTORS = 5;
-const int velocidadeBase = 210;
+const int velocidadeBase = (!arrancadaMode) ? 210 : 255;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
 int velocidadeDireita = 0;
@@ -27,18 +27,20 @@ int velocidadeEsquerda = 0;
 
 
 // --- Timeouts ---
-const int TIMEOUT_FAIXA_PEDESTRE = 5000;
-const int TIMEOUT_MARCACAO = 550;
+const int TIMEOUT_FAIXA_PEDESTRE = 5100;
+const int TIMEOUT_MARCACAO = 550; // 550
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
-const int TIMEOUT_PERIODO_FAIXA = 2300;
+const int TIMEOUT_PERIODO_FAIXA = 2000;
 
 // --- Tolerâncias ---
 const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = 180, Ki = 0, Kd = 100;
+const float Kp = (!arrancadaMode) ? 180 : 150; 
+const float Ki = 0;
+const float Kd = (!arrancadaMode) ? 150 : 0;
 
 float erro = 0;
 float erroAnterior = 0;
@@ -46,7 +48,7 @@ float I = 0, P = 0, D = 0, PID = 0;
 
 
 // --- LEDs ---
-const int LED_LEFT  = (!debugSD) ? 7 : NULL;
+const int LED_LEFT = 7;
 const int LED_RIGHT = (!debugSD) ? 10 : NULL;
 int tempoLedLigou = 0;
 bool ledLigado = false;
@@ -62,7 +64,7 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
 
-const unsigned long DEBOUNCE_TEMPO_CURVA = 2000;
+const unsigned long DEBOUNCE_TEMPO_CURVA = 2500;
 unsigned long tempoUltimaCurva = 0;
 
 unsigned long tempoMarcacaoDireita = 0;
@@ -72,3 +74,4 @@ const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
 bool debugMode = false;
 bool debugMotor = false;
 bool debugSD = true;
+bool arrancadaMode = false;

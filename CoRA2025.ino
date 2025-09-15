@@ -76,11 +76,10 @@ void ler_sensores() {
  * that the speed values remain within the valid range (0-255).
  * It then drives the motors with the new speeds.
  */
-void ajusta_movimento() {
+void ajusta_movimento() { 
   // Change the speed value
   velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
   velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
-  
   // Send the new speed to the run function
   run(velocidadeDireita, velocidadeEsquerda);
 }
@@ -216,7 +215,7 @@ void setup_sd() {
 
   if (logFile) {
     //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1"); 
+    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1,Inclinacao"); 
     logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -234,9 +233,6 @@ void write_sd(int challenge_marker = 0) {
     logFile.print(",");
     logFile.print(challenge_marker);
     logFile.print(",");
-    //mpu.update();
-    //logFile.print(mpu.getAngleZ());
-    //logFile.print(",");
     logFile.print(marcacoesDireita);
     logFile.print(",");
     logFile.print(marcacoesEsquerda);
@@ -262,6 +258,14 @@ void write_sd(int challenge_marker = 0) {
       logFile.print(",");
       logFile.print(SENSOR_CURVA[i]);
     }
+    logFile.print(",");
+    if (challenge_marker == 2 || challenge_marker == 14 || challenge_marker == 15) {
+      mpu.update();
+      logFile.print(mpu.getAngleZ());
+    } else {
+      logFile.print(0); 
+    }
+    //logFile.print(",");
 
     // Quebra de linha no final
     logFile.println();
@@ -289,102 +293,112 @@ void loop() {
   verifica_estado_led();
 
   if (!debugMode) {
-    ler_sensores();
-    int posicao = calcula_posicao(SENSOR);
-
-    if (posicao != 0) {
-      ultima_posicao_linha = posicao;  // guarda última leitura válida
-    }
-    // verifica se tem uma curva de 90
-    int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-    if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
-      saidaCurva = CURVA_NAO_ENCONTRADA; 
-    }
-
-    if (faixa_de_pedestre && saidaCurva == CURVA_NAO_ENCONTRADA) {
-      if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
-        if (debugSD) write_sd(2);
-        realiza_faixa_de_pedestre();
-        faixa_de_pedestre = false;
-      }
-    }
-    
-    if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+    if (arrancadaMode) {
+      ler_sensores();
       calcula_erro();
-      
-      if (erro != LINHA_NAO_DETECTADA) {
-        // segue normalmente
-        calcula_PID();
-        ajusta_movimento();
+      calcula_PID();
+      ajusta_movimento();
+      if (debugSD) write_sd(0);
+    } else {
+      ler_sensores();
+      int posicao = calcula_posicao(SENSOR);
 
-        if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
-          tentativasRecuperacao = 0;
-        }
-
-        if (debugSD) write_sd(0);
-        contadorLinhaPerdida = 0; // reset se achou a linha
-      } else if (erro == LINHA_NAO_DETECTADA) {
-        // perdeu a linha
-        if (contadorLinhaPerdida == 0) {
-          tempoSemLinha = millis(); // marca quando perdeu
-        }
-        contadorLinhaPerdida++;
-
-        // verifica se a perda já é relevante (por contagem OU tempo)
-        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
-              
-          stop_motors();
-
-          // tenta recuperar a linha
-          if (tenta_recuperar_linha()) {
-            contadorLinhaPerdida = 0; // recuperou com sucesso
-            tentativasRecuperacao++;
-            tempoUltimaRecuperacao = millis();
-            
-            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
-              // já tentou muitas vezes → para definitivo
-              erro = erroAnterior;
-              if (debugSD) write_sd(3);
-              area_de_parada();
-            }
-          } else {
-            erro = erroAnterior;
-            if (debugSD) write_sd(3); // Log challenge 3: Stop area
-            area_de_parada(); // não conseguiu → para
-          }
+      if (posicao != 0) {
+        ultima_posicao_linha = posicao;  // guarda última leitura válida
+      }
+      // verifica se tem uma curva de 90
+      int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+      if (!inversaoAtiva){
+        if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
+          saidaCurva = CURVA_NAO_ENCONTRADA; 
         }
       }
-    } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-      // evita ligar no cruzamento
-      if (calcula_sensores_ativos(SENSOR) > 1) {
-        if (!inversaoAtiva) {
-          marcacoesDireita = 0;
-          marcacoesEsquerda = 0;
 
-          analisa_marcacoes();
-          
-          if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
-            unsigned long deltaTempo;
-            if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
-              deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
-            } else {
-              deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
-            }
+      if (faixa_de_pedestre) {
+        if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+          if (debugSD) write_sd(2);
+          realiza_faixa_de_pedestre();
+          faixa_de_pedestre = false;
+        }
+      }
+      
+      if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+        calcula_erro();
+        
+        if (erro != LINHA_NAO_DETECTADA) {
+          // segue normalmente
+          calcula_PID();
+          ajusta_movimento();
 
-            if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
-              realiza_marcha_re(saidaCurva);
+          if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
+            tentativasRecuperacao = 0;
+          }
+
+          if (debugSD) write_sd(0);
+          contadorLinhaPerdida = 0; // reset se achou a linha
+        } else if (erro == LINHA_NAO_DETECTADA) {
+          // perdeu a linha
+          if (contadorLinhaPerdida == 0) {
+            tempoSemLinha = millis(); // marca quando perdeu
+          }
+          contadorLinhaPerdida++;
+
+          // verifica se a perda já é relevante (por contagem OU tempo)
+          if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
+                
+            stop_motors();
+
+            // tenta recuperar a linha
+            if (tenta_recuperar_linha()) {
+              contadorLinhaPerdida = 0; // recuperou com sucesso
+              tentativasRecuperacao++;
+              tempoUltimaRecuperacao = millis();
+              
+              if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
+                // já tentou muitas vezes → para definitivo
+                erro = erroAnterior;
+                if (debugSD) write_sd(3);
+                area_de_parada();
+              }
             } else {
-              turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
-              if (debugSD) write_sd(6);
+              erro = erroAnterior;
+              if (debugSD) write_sd(3); // Log challenge 3: Stop area
+              area_de_parada(); // não conseguiu → para
             }
-          } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
-            //realiza_rotatoria();
-          } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
-            turn_90(saidaCurva);
           }
         }
-        
-        stop_motors();
+      } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+        // evita ligar no cruzamento
+        if (calcula_sensores_ativos(SENSOR) > 1) {
+          if (!inversaoAtiva) {
+            marcacoesDireita = 0;
+            marcacoesEsquerda = 0;
+            
+            analisa_marcacoes();
+            
+            if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
+              unsigned long deltaTempo;
+              if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
+                deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
+              } else {
+                deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
+              }
+
+              if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
+                realiza_marcha_re(saidaCurva);
+              } else {
+                turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
+                if (debugSD) write_sd(6);
+              }
+            } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
+              //realiza_rotatoria();
+            } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+              turn_90(saidaCurva);
+            }
+          }
+          
+          stop_motors();
+        }
       }
     }
   } else { 
