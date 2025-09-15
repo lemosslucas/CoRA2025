@@ -237,7 +237,8 @@ def plot_data(df, Kp, Ki, Kd):
     ax1.set_ylabel('Error')
     ax1.set_ylim(-6, 6) # Set fixed y-axis for error
     ax1.grid(True)
-    ax1.legend()
+    # Posiciona a legenda do lado de fora, à direita do gráfico
+    ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     # Plot 2: PID Component Contributions
     ax2.plot(df['Time'], df['Smoothed_Error'], label='Smoothed_Error', color='green', linewidth=2.5)
@@ -263,7 +264,8 @@ def plot_data(df, Kp, Ki, Kd):
     ax4.grid(True)
     ax4.legend()
 
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # Ajusta o layout para dar espaço para a legenda externa e o supertítulo
+    plt.tight_layout(rect=[0, 0.03, 0.85, 0.95])
     plt.show()
 def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
     """

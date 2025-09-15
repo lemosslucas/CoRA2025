@@ -442,41 +442,22 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
 void realiza_marcha_re(int lado_da_curva) {
   if (debugSD) write_sd(7);
   stop_motors();
-  delay(500);
+  delay(1000);
 
-  // 2. Execute a ré por um tempo fixo
-  while (calcula_sensores_ativos(SENSOR) > 1) {
-    ler_sensores();
-    calcula_erro();
-    calcula_PID();
-    velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
-    velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
-    run_backward(velocidadeDireita, velocidadeEsquerda);
-  }
-  //delay(200);
+  run_backward(255, 255); 
+  delay(1200);
 
   // 3. Pare novamente
   stop_motors();
-  delay(1000);
+  delay(500);
 
-  while (calcula_sensores_ativos(SENSOR) <= 1) {
-    // Move straight forward, not using line-following logic here.
-    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    ler_sensores(); // Keep updating sensor values to check the condition.
-  }
+  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
   delay(200);
 
-  // 4. Turn to the side of the second marker, as per the rules
-  if (lado_da_curva == SAIDA_DIREITA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  } else {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    turn_until_angle(90);
-  }
+  turn_90(lado_da_curva);
 
   stop_motors();
-  delay(1000);
+  delay(500);
 }
 
 bool tenta_recuperar_linha() {
@@ -567,6 +548,11 @@ void analisa_marcacoes() {
 
       if (marcacoesEsquerda > marcacoesAntesEsq || marcacoesDireita > marcacoesAntesDir) {
         tempoUltimaDeteccao = millis();
+      }
+
+      if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) {
+        marcacoesDireita = 1;
+        marcacoesEsquerda = 1;
       }
 
       // Ensure the robot stays on the line
