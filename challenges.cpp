@@ -119,7 +119,6 @@ void turn_90(int curvaEncontrada) {
     stop_motors();
     delay(200);
   
-    erro = erroAnterior;
     if (curvaEncontrada == CURVA_ESQUERDA) {
       if (debugSD) write_sd(1);
       digitalWrite(LEDS, HIGH);
@@ -139,8 +138,8 @@ void turn_90(int curvaEncontrada) {
     // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
     while (true) {
       if (debugSD) write_sd(13);
-      calcula_erro();
-      calcula_PID();
+      calcula_erro();  
+      myPID.Compute();       
       ajusta_movimento();
       if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO && SENSOR[2] == BRANCO) {
         break;
@@ -308,7 +307,7 @@ void realiza_faixa_de_pedestre() {
   while(SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO) {
     ler_sensores();
     calcula_erro();
-    calcula_PID();
+    myPID.Compute();     
     ajusta_movimento();
   }
 
@@ -408,6 +407,7 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
   while (saidaAtual < saidaDesejada) {
     // Lógica principal de seguir linha é executada em todos os ciclos
     calcula_erro();
+    myPID.Compute();
     ajusta_movimento();
 
     // Assumindo que a rotatória é para a direita (sentido anti-horário)
@@ -575,7 +575,7 @@ void analisa_marcacoes() {
 
       // Ensure the robot stays on the line
       calcula_erro();
-      calcula_PID();
+      myPID.Compute();     
       ajusta_movimento();
       if (debugSD) write_sd(9);
     }

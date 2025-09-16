@@ -43,8 +43,6 @@ const float Ki = (!arrancadaMode) ? 0.02 : 0;
 const float Kd = (!arrancadaMode) ? 150 : 0;
 
 float erro = 0;
-float erroAnterior = 0;
-float I = 0, P = 0, D = 0, PID = 0;
 
 // --- LEDs ---
 const int LEDS = 7;
@@ -73,3 +71,4 @@ bool debugMode = false;
 bool debugMotor = false;
 bool debugSD = true;
 bool arrancadaMode = false;
+bool bateria1 = true;

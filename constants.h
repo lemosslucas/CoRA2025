@@ -52,8 +52,6 @@ extern int velocidadeEsquerda;
 //  Variáveis do PID 
 extern const float Kp, Ki, Kd;
 extern float erro;
-extern float erroAnterior;
-extern float I, P, D, PID;
 
 //  Variáveis de Estado dos Desafios 
 extern int saida_rotatoria;
@@ -88,6 +86,7 @@ extern int ultima_posicao_linha;
 
 extern unsigned long tempoUltimaCurva;
 extern bool arrancadaMode;
+extern bool bateria1;
 
 extern unsigned long tempoMarcacaoDireita;
 extern unsigned long tempoMarcacaoEsquerda;

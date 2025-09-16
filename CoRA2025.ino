@@ -5,9 +5,16 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
+#include <PID_v1_bc.h>
 
 MPU6050 mpu(Wire);
 File logFile;
+
+// para o PID
+double Setpoint, PID_Input, PID_Output;
+
+// A ordem correta é: &PID_Input, &PID_Output, &Setpoint
+PID myPID(&PID_Input, &PID_Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
 /**
  * @brief Configures and initializes the robot's components.
@@ -42,6 +49,13 @@ void setup() {
   // Calibrate the gyroscope
   gyro_bias_z = calibrate_gyro();
   
+  // Nosso objetivo é manter o erro em zero.
+  Setpoint = 0;
+  // Liga o PID.
+  myPID.SetMode(AUTOMATIC); 
+  // Define os limites da saída do PID.
+  myPID.SetOutputLimits(-255, 255); 
+
   // liga os leds da cara para indicar que o robô iniciou
   digitalWrite(LEDS, HIGH);
   tempoLedLigou = millis();
@@ -76,8 +90,8 @@ void ler_sensores() {
  */
 void ajusta_movimento() { 
   // Change the speed value
-  velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
-  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
+  velocidadeDireita = constrain(velocidadeBaseDireita - PID_Output, 0, 255);
+  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID_Output, 0, 255);
   // Send the new speed to the run function
   run(velocidadeDireita, velocidadeEsquerda);
 }
@@ -121,32 +135,10 @@ void calcula_erro() {
     int sensoresInativos = QUANTIDADE_TOTAL_SENSORES - sensoresAtivos;
     erro = somatorioErro / sensoresInativos;
   }
+
+  PID_Input = erro;
 }
 
-/**
- * @brief Calculates the PID (Proportional-Integral-Derivative) control value.
- * 
- * Uses the current error to calculate the three control components:
- * - Proporcional (P): Proporcional ao erro atual.
- * - Integral (I): Acumula o erro ao longo do tempo para corrigir desvios persistentes.
- * - Derivativo (D): Responde à taxa de variação do erro para amortecer oscilações.
- * 
- * The final PID value is the weighted sum of these components and is used to
- * adjust the motor speeds.
- */
-void calcula_PID() {
-  // Initialize variables for calculation
-  PID = 0;
-  P = erro;
-  I = constrain(I + P, -255, 255);
-  D = erro - erroAnterior;
-
-  // Calculate PID
-  PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
-
-  // Update the previous error value
-  erroAnterior = erro;
-}
 
 /**
  * @brief Prints debugging information to the serial monitor.
@@ -173,8 +165,7 @@ void imprime_serial() {
   calcula_erro();
   Serial.print(erro);
   Serial.print(" PID: ");
-  calcula_PID();
-  Serial.print(PID);
+  Serial.print(0);
   Serial.print(" Velocidade Direita: ");
   Serial.print(velocidadeDireita);
   Serial.print(" Velocidade Esquerda: ");
@@ -283,12 +274,43 @@ void loop() {
   verifica_estado_led();
 
   if (!debugMode) {
-    if (arrancadaMode) {
+    if (arrancadaMode || bateria1) {
       ler_sensores();
       calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
-      if (debugSD) write_sd(0);
+      if (erro == LINHA_NAO_DETECTADA) {
+        if (contadorLinhaPerdida == 0) {
+          tempoSemLinha = millis(); // marca quando perdeu
+        }
+        contadorLinhaPerdida++;
+
+        // verifica se a perda já é relevante (por contagem OU tempo)
+        if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
+              
+          stop_motors();
+
+          // tenta recuperar a linha
+          if (tenta_recuperar_linha()) {
+            contadorLinhaPerdida = 0; // recuperou com sucesso
+            tentativasRecuperacao++;
+            tempoUltimaRecuperacao = millis();
+            
+            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
+              // já tentou muitas vezes → para definitivo
+              if (debugSD) write_sd(3);
+              area_de_parada();
+            }
+          } else {
+            if (debugSD) write_sd(3); // Log challenge 3: Stop area
+            area_de_parada(); // não conseguiu → para
+          }
+        }
+      } else if (erro != LINHA_NAO_DETECTADA) {
+        // segue normalmente
+        myPID.Compute();     
+        ajusta_movimento();
+        if (debugSD) write_sd(0);
+        contadorLinhaPerdida = 0; // reset se achou a linha
+      }
     } else {
       ler_sensores();
       int posicao = calcula_posicao(SENSOR);
@@ -321,8 +343,8 @@ void loop() {
         calcula_erro();
         
         if (erro != LINHA_NAO_DETECTADA) {
-          // segue normalmente
-          calcula_PID();
+          // segue normalmente      
+          myPID.Compute();    
           ajusta_movimento();
 
           if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
@@ -351,12 +373,10 @@ void loop() {
               
               if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
                 // já tentou muitas vezes → para definitivo
-                erro = erroAnterior;
                 if (debugSD) write_sd(3);
                 area_de_parada();
               }
             } else {
-              erro = erroAnterior;
               if (debugSD) write_sd(3); // Log challenge 3: Stop area
               area_de_parada(); // não conseguiu → para
             }
