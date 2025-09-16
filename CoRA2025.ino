@@ -383,7 +383,7 @@ void loop() {
                 saidaCurva = (tempoMarcacaoDireita < tempoMarcacaoEsquerda) ? CURVA_DIREITA : CURVA_ESQUERDA;
                 realiza_marcha_re(saidaCurva);
               } else {
-                turn_90(CURVA_ESQUERDA); // ta invertido nao sei porque
+                turn_90(CURVA_EM_DUVIDA); // ta invertido nao sei porque
                 if (debugSD) write_sd(6);
               }
             } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {

@@ -39,13 +39,12 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 // --- PID ---
 // Constantes para o cálculo do PID
 const float Kp = (!arrancadaMode) ? 180 : 150; 
-const float Ki = 0;
+const float Ki = (!arrancadaMode) ? 0.02 : 0;
 const float Kd = (!arrancadaMode) ? 150 : 0;
 
 float erro = 0;
 float erroAnterior = 0;
 float I = 0, P = 0, D = 0, PID = 0;
-
 
 // --- LEDs ---
 const int LEDS = 7;
@@ -63,7 +62,7 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
 
-const unsigned long DEBOUNCE_TEMPO_CURVA = 2500;
+const unsigned long DEBOUNCE_TEMPO_CURVA = 1000;
 unsigned long tempoUltimaCurva = 0;
 
 unsigned long tempoMarcacaoDireita = 0;

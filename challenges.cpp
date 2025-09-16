@@ -271,7 +271,7 @@ void realiza_faixa_de_pedestre() {
   
   if (debugSD) write_sd(12);
   unsigned long start = millis();
-  while (erro == LINHA_NAO_DETECTADA && millis() - start < 1500) {
+  while (erro == LINHA_NAO_DETECTADA || millis() - start < 500) {
     ler_sensores();
     calcula_erro();
     run_backward(150, 150);
@@ -285,7 +285,7 @@ void realiza_faixa_de_pedestre() {
     run(velocidadeBaseDireita, -velocidadeBaseEsquerda);
   }
 
-  while (SENSOR[2] != BRANCO) {
+  while (SENSOR[1] != PRETO && SENSOR[2] != BRANCO && SENSOR[3] != PRETO) {
     ler_sensores();
   }
   
@@ -296,18 +296,36 @@ void realiza_faixa_de_pedestre() {
   
   run(255, 255);
   delay(TIMEOUT_PERIODO_FAIXA);
+  
+  ler_sensores();
+  calcula_erro();
+  while(SENSOR[2] != BRANCO) {
+    run(255, 255);
+    ler_sensores();
+    calcula_erro();
+  }
 
+  while(SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO) {
+    ler_sensores();
+    calcula_erro();
+    calcula_PID();
+    ajusta_movimento();
+  }
+
+  
+  /*
   if (SENSOR_CURVA[0] == BRANCO) {
     while (SENSOR[2] != BRANCO) {
       ler_sensores();
-      run(velocidadeBaseDireita, 0);
+      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
     }
   } else if (SENSOR_CURVA[1] == BRANCO) {
     while (SENSOR[2] != BRANCO) {
       ler_sensores();
-      run(0, velocidadeBaseEsquerda);
+      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
     }
   }
+  */
   if(debugSD) write_sd(15); // Log: Fim da travessia
   
   // Zera a flag para não entrar neste desafio novamente por engano
