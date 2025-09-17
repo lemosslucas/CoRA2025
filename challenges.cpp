@@ -97,6 +97,7 @@ int calcula_posicao(int SENSOR[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
+  
   if (!inversaoAtiva) {
     unsigned long startTime = millis();
     // This timeout prevents the robot from getting stuck if it misreads the sensors.
@@ -106,14 +107,16 @@ void turn_90(int curvaEncontrada) {
       run(velocidadeBaseDireita, velocidadeBaseEsquerda);
       ler_sensores(); // Keep updating sensor values to check the condition.
     }
-    delay(100);
+    delay(50);
     
+    stop_motors();
+    delay(100);
     int posicao = calcula_posicao(SENSOR);
   
     // Ajuste proporcional (ex.: 10 graus por posição)
-    int ajuste = posicao * 10;  
+    int ajuste = posicao * 0;  
   
-    int anguloFinal = ANGLE_CURVE + ajuste;
+    int anguloFinal = 80 + ajuste;
   
     // Stop the car for greater stability
     stop_motors();
@@ -123,15 +126,18 @@ void turn_90(int curvaEncontrada) {
     if (curvaEncontrada == CURVA_ESQUERDA) {
       if (debugSD) write_sd(1);
       digitalWrite(LEDS, HIGH);
-      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+
+      //while (SENSOR[2] != BRANCO) {
+       // turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        //ler_sensores();
+      //}
+      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
       turn_until_angle(anguloFinal); 
-      digitalWrite(LEDS, LOW);
     } else if (curvaEncontrada == CURVA_DIREITA) {
       if (debugSD) write_sd(4);
       digitalWrite(LEDS, HIGH);
       turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
       turn_until_angle(anguloFinal);
-      digitalWrite(LEDS, LOW);
     }
   
     stop_motors();
@@ -152,7 +158,6 @@ void turn_90(int curvaEncontrada) {
     marcacoesDireita = 0; marcacoesDireita = 0;
   }
 }
-
 
 /**
  * @brief Measures the gyroscope's Z-axis bias while the robot is stationary.
@@ -271,7 +276,7 @@ void realiza_faixa_de_pedestre() {
   
   if (debugSD) write_sd(12);
   unsigned long start = millis();
-  while (erro == LINHA_NAO_DETECTADA || millis() - start < 500) {
+  while (erro == LINHA_NAO_DETECTADA || millis() - start < 700) {
     ler_sensores();
     calcula_erro();
     run_backward(150, 150);
@@ -312,20 +317,6 @@ void realiza_faixa_de_pedestre() {
     ajusta_movimento();
   }
 
-  
-  /*
-  if (SENSOR_CURVA[0] == BRANCO) {
-    while (SENSOR[2] != BRANCO) {
-      ler_sensores();
-      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    }
-  } else if (SENSOR_CURVA[1] == BRANCO) {
-    while (SENSOR[2] != BRANCO) {
-      ler_sensores();
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    }
-  }
-  */
   if(debugSD) write_sd(15); // Log: Fim da travessia
   
   // Zera a flag para não entrar neste desafio novamente por engano

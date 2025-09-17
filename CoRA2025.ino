@@ -323,7 +323,9 @@ void loop() {
         if (erro != LINHA_NAO_DETECTADA) {
           // segue normalmente
           calcula_PID();
-          ajusta_movimento();
+          if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
+            ajusta_movimento();
+          }
 
           if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
             tentativasRecuperacao = 0;
@@ -386,9 +388,7 @@ void loop() {
                 turn_90(CURVA_EM_DUVIDA); // ta invertido nao sei porque
                 if (debugSD) write_sd(6);
               }
-            } else if (marcacoesDireita > 1 || marcacoesEsquerda > 1) {
-              //realiza_rotatoria();
-            } else if (marcacoesDireita == 1 || marcacoesEsquerda == 1) {
+            } else if (marcacoesDireita >= 1 || marcacoesEsquerda >= 1) {
               turn_90(saidaCurva);
             }
           }
