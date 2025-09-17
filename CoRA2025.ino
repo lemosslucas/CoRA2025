@@ -90,8 +90,8 @@ void ler_sensores() {
  */
 void ajusta_movimento() { 
   // Change the speed value
-  velocidadeDireita = constrain(velocidadeBaseDireita - PID_Output, 0, 255);
-  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID_Output, 0, 255);
+  velocidadeDireita = constrain(velocidadeBaseDireita + PID_Output, 0, 255);
+  velocidadeEsquerda = constrain(velocidadeBaseEsquerda - PID_Output, 0, 255);
   // Send the new speed to the run function
   run(velocidadeDireita, velocidadeEsquerda);
 }
