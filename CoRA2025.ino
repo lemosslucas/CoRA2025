@@ -100,6 +100,10 @@ void calcula_erro() {
   verifica_inversao(SENSOR, SENSOR_CURVA);
 
   if (inversao_finalizada) {
+    //calcula_erro(); 
+    //if (erro == 2) desalinhado_para_direita = true;
+    //if (erro == -2) desalinhado_para_esquerda = true;
+
     faixa_de_pedestre = true;
   }
 
@@ -310,6 +314,14 @@ void loop() {
           qnt_fim_inversao += 1;
         }
 
+        if (erro == 2) {
+            desalinhado_para_direita = true;
+            write_sd(16);
+        } else if (erro == -2) {
+            desalinhado_para_esquerda = true;
+            write_sd(17);
+        }
+
         if (qnt_fim_inversao >= 3) {
           if (debugSD) write_sd(2);
           realiza_faixa_de_pedestre();
@@ -408,4 +420,4 @@ void loop() {
   }
 
   delay(5);
-}
+} 

@@ -21,7 +21,9 @@ challenge_map = {
     12: {'color': 'darkorange', 'label': 'Reajuste faixa', 'marker': 's', 'size': 40},
     13: {'color': 'olive', 'label': 'evitando curva', 'marker': '*', 'size': 40},
     14: {'color': 'orangered', 'label': 'travessia faixa', 'marker': 's', 'size': 70},
-    15: {'color': 'red', 'label': 'fim de travessia', 'marker': 's', 'size': 70}
+    15: {'color': 'red', 'label': 'fim de travessia', 'marker': 's', 'size': 70},
+    16: {'color': 'red', 'label': 'tortao para direita', 'marker': 's', 'size': 70},
+    17: {'color': 'red', 'label': 'tortao pra esquerda', 'marker': 's', 'size': 70},
 }
 
 

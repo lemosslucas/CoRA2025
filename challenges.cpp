@@ -246,6 +246,7 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
     if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
       inversaoAtiva = false;
       if (debugSD) write_sd(11);
+      
       inversao_finalizada = true;
       return false;
     }
@@ -263,74 +264,113 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   return false;
 }
 
+void atravessa_faixa_com_correcoes() {
+  unsigned long tempo_inicial = millis();
+
+  while (millis() - tempo_inicial < 3000) { // limite de segurança
+    ler_sensores();
+
+    // Detecta linha do outro lado → finaliza
+    if (SENSOR[2] == BRANCO || SENSOR[1] == PRETO || SENSOR[3] == PRETO) {
+      break;
+    }
+
+    int correcao = 0;
+    if (SENSOR[2] == PRETO) {
+      // central sobre a faixa → segue reto
+      correcao = 0;
+    } else if (SENSOR[1] == PRETO) {
+      // faixa vista mais à esquerda → corrige para esquerda
+      correcao = -40;
+    } else if (SENSOR[3] == PRETO) {
+      // faixa vista mais à direita → corrige para direita
+      correcao = 40;
+    } else if (SENSOR[0] == PRETO) {
+      correcao = -60;
+    } else if (SENSOR[4] == PRETO) {
+      correcao = 60;
+    }
+
+    int vDir = constrain(velocidadeBaseDireita - correcao, 0, 255);
+    int vEsq = constrain(velocidadeBaseEsquerda + correcao, 0, 255);
+
+    run(vDir, vEsq);
+  }
+
+  stop_motors();
+}
+
+
 void realiza_faixa_de_pedestre() {
   if (debugSD) write_sd(2);
   stop_motors();
-  delay(TIMEOUT_FAIXA_PEDESTRE); 
-  // precisa de uma logica que alinha com quase 100% de certeza para ele nao perder a linha q ele vai encontra na frente
-  
-  if (debugSD) write_sd(12);
-  unsigned long start = millis();
-  while (erro == LINHA_NAO_DETECTADA || millis() - start < 500) {
-    ler_sensores();
-    calcula_erro();
-    run_backward(150, 150);
-  }
-  stop_motors();
-  
-  int pos = calcula_posicao(SENSOR); // -2..2
-  if (pos < -1) {
-    run(-velocidadeBaseDireita, velocidadeBaseEsquerda);
-  } else if (pos > 1) {
-    run(velocidadeBaseDireita, -velocidadeBaseEsquerda);
-  }
-
-  while (SENSOR[1] != PRETO && SENSOR[2] != BRANCO && SENSOR[3] != PRETO) {
-    ler_sensores();
-  }
-  
-  stop_motors();
-  delay(500);
+  delay(TIMEOUT_FAIXA_PEDESTRE); // espera os 5 segundos
 
   if (debugSD) write_sd(14);
-  
-  run(255, 255);
-  delay(TIMEOUT_PERIODO_FAIXA);
-  
-  ler_sensores();
-  calcula_erro();
-  while(SENSOR[2] != BRANCO) {
-    run(255, 255);
-    ler_sensores();
-    calcula_erro();
+
+  // se alinha com base no ultimo erro
+  if (desalinhado_para_esquerda) {
+    turn_right(255, 255);
+    delay(500);
+    desalinhado_para_esquerda = false;
+  } else if (desalinhado_para_direita) {
+    turn_left(255, 255);
+    delay(500);
+    desalinhado_para_direita = false;
   }
 
-  while(SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO) {
+  // --- ETAPA 1: anda reto até achar a faixa branca (ou timeout de 1s) ---
+  unsigned long inicio = millis();
+  while (millis() - inicio < 1000) {
     ler_sensores();
-    calcula_erro();
-    calcula_PID();
-    ajusta_movimento();
+    if (SENSOR[0] == PRETO || SENSOR[1] == PRETO || SENSOR[2] == PRETO || SENSOR[3] == PRETO || SENSOR[4] == PRETO) break;
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
   }
 
-  
-  /*
-  if (SENSOR_CURVA[0] == BRANCO) {
-    while (SENSOR[2] != BRANCO) {
-      ler_sensores();
-      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  // --- ETAPA 2: segue a faixa branca com correção usando os 5 sensores ---
+  inicio = millis();
+  while (millis() - inicio < 1500) { // limite de segurança ~1,5s
+    ler_sensores();
+
+    // Se nenhum sensor detectar faixa, sai
+    if (calcula_sensores_ativos(SENSOR) == 0) break;
+
+    // cálculo de erro proporcional
+    int pesos[5] = {-2, -1, 0, 1, 2};
+    int somaPesos = 0, somaAtivos = 0;
+    for (int i = 0; i < 5; i++) {
+      if (SENSOR[i] == PRETO) {  // faixa branca detectada
+        somaPesos += pesos[i];
+        somaAtivos++;
+      }
     }
-  } else if (SENSOR_CURVA[1] == BRANCO) {
-    while (SENSOR[2] != BRANCO) {
-      ler_sensores();
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-    }
+
+    int erro_local = (somaAtivos > 0) ? somaPesos / somaAtivos : 0;
+    int correcao = erro_local * 40; // ganho proporcional
+
+    int vDir = constrain(velocidadeBaseDireita - correcao, 0, 255);
+    int vEsq = constrain(velocidadeBaseEsquerda + correcao, 0, 255);
+    run(vDir, vEsq);
   }
-  */
-  if(debugSD) write_sd(15); // Log: Fim da travessia
-  
-  // Zera a flag para não entrar neste desafio novamente por engano
-  inversao_finalizada = false;
-} 
+
+  // --- ETAPA 3: anda reto até achar a linha preta do outro lado ---
+  inicio = millis();
+  while (millis() - inicio < 1000) {
+    ler_sensores();
+    // encontrou linha preta final
+    if (SENSOR[0] == BRANCO || SENSOR[1] == BRANCO || SENSOR[2] == BRANCO || SENSOR[3] == BRANCO || SENSOR[4] == BRANCO) {
+      break;
+    }
+    run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  }
+
+  stop_motors();
+
+  if (debugSD) write_sd(15); // fim da travessia
+  inversao_finalizada = false; // reseta flag
+}
+
+
 
 /**
  * @brief Determines the exit direction for a challenge based on marker counts.

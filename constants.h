@@ -92,4 +92,8 @@ extern bool arrancadaMode;
 extern unsigned long tempoMarcacaoDireita;
 extern unsigned long tempoMarcacaoEsquerda;
 extern const int TOLERANCIA_TEMPO_SIMULTANEO;
+extern float ultimoAnguloZAlinhado;
+extern bool desalinhado_para_esquerda;
+extern bool desalinhado_para_direita;
+
 #endif // CONSTANTS_H

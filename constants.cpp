@@ -73,3 +73,8 @@ bool debugMode = false;
 bool debugMotor = false;
 bool debugSD = true;
 bool arrancadaMode = false;
+
+bool desalinhado_para_esquerda = false ;
+bool desalinhado_para_direita = false;
+
+float ultimoAnguloZAlinhado = 0;
