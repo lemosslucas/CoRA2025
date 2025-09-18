@@ -38,7 +38,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = (!arrancadaMode) ? 90 : 150; 
+const float Kp = (!arrancadaMode) ? 85 : 150; 
 const float Ki = (!arrancadaMode) ? 0 : 0;
 const float Kd = (!arrancadaMode) ? 5 : 0;
 
@@ -62,12 +62,14 @@ bool jaContouEsquerda = false, jaContouDireita = false;
 bool inversao_finalizada = false;
 int ultima_posicao_linha = 0;
 
+int faz_re = 0;
+
 const unsigned long DEBOUNCE_TEMPO_CURVA = 1000;
 unsigned long tempoUltimaCurva = 0;
 
 unsigned long tempoMarcacaoDireita = 0;
 unsigned long tempoMarcacaoEsquerda = 0;
-const int TIMEOUT_MARCACAO = 550; // 550
+const int TIMEOUT_MARCACAO = 400; // 550
 const int TOLERANCIA_TEMPO_SIMULTANEO = 400;
 // --- Debug ---
 bool debugMode = false;

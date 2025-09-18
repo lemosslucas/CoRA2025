@@ -13,6 +13,7 @@
 #define LINHA_NAO_DETECTADA -5
 #define QUANTIDADE_TOTAL_SENSORES 5
 
+extern int faz_re;
 //  Configurações de Desafios 
 #define CURVA_NAO_ENCONTRADA 0
 #define CURVA_ESQUERDA 1

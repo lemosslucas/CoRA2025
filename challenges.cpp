@@ -83,6 +83,30 @@ int calcula_posicao(int SENSOR[]) {
 }
 
 
+
+bool alinha_pela_curva() {
+  bool alinhamento_ativo = false;
+
+  // Verifica se APENAS o sensor de curva esquerdo detecta a linha (preto)
+  if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+    // O robô está se desviando para a direita, então precisa virar à esquerda.
+    // Para isso, desligamos o motor esquerdo e mantemos o direito funcionando.
+    run(velocidadeBaseDireita, 0); 
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(16); // Log para indicar alinhamento à esquerda
+  }
+  // Verifica se APENAS o sensor de curva direito detecta a linha (preto)
+  else if (SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == BRANCO) {
+    // O robô está se desviando para a esquerda, então precisa virar à direita.
+    // Para isso, desligamos o motor direito e mantemos o esquerdo funcionando.
+    run(0, velocidadeBaseEsquerda);
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(17); // Log para indicar alinhamento à direita
+  }
+
+  return alinhamento_ativo;
+}
+
 /**
  * @brief Executes a 90-degree turn using the gyroscope.
  * 
@@ -107,7 +131,8 @@ void turn_90(int curvaEncontrada) {
       turn_left(255, 255);
       //ler_sensores();
     }
-    delay(1700);
+    turn_left(255, 255);
+    delay(2300);
     return;
 
     // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
@@ -417,22 +442,40 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
  * 
  * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
  */
+
+
 void realiza_marcha_re(int lado_da_curva) {
   if (debugSD) write_sd(7);
-  stop_motors();
-  delay(1000);
 
-  run_backward(255, 255); 
-  delay(1200);
+  run(255, 255);
+  delay(700);
 
-  // 3. Pare novamente
-  stop_motors();
-  delay(500);
+  int tempo = millis();
+  while ( millis() - tempo < 800) {
+    velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
+    velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
+    run_backward(velocidadeDireita, velocidadeEsquerda); 
+    ler_sensores();
+    calcula_erro();
+    calcula_PID();
+  }
 
-  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  delay(200);
+  turn_left(255, 255);
+  delay(235);
 
-  turn_90(lado_da_curva);
+  //while(SENSOR_CURVA[0] != BRANCO && SENSOR[2] == PRETO && SENSOR_CURVA[1] != BRANCO) {
+  //  turn_left(255, 255);
+  //  ler_sensores();
+  //}
+  
+  run(255, 255);
+  delay(100);
+
+  return;
+  //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  //delay(200);
+
+  //turn_90(CURVA_ESQUERDA);
 
   stop_motors();
   delay(500);
@@ -510,7 +553,7 @@ void analisa_marcacoes() {
     jaContouDireita = false;
     
     // If there is a curve, store the number of markers
-    while((calcula_sensores_ativos(SENSOR) != 5)) {
+    while(true) {
       if (millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO) {
         break;
       }
@@ -563,8 +606,8 @@ void test_motors() {
   //delay(3000);
   //stop_motors();
   //delay(1000);
-  //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  //delay(3000);
+  run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  delay(3000);
   //stop_motors();
   //delay(1000);
   //turn_90(CURVA_DIREITA);

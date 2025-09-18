@@ -301,134 +301,128 @@ bool alinha_pela_curva(int SENSOR_CURVA[]) {
   return alinhamento_ativo;
 }
 
+int cu =0;
+
 void loop() {  
   // verifica o estado do led
   verifica_estado_led();
 
-  if (!debugMode) {
-    if (arrancadaMode) {
-      ler_sensores();
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
-      if (debugSD) write_sd(0);
-    } else {
-      ler_sensores();
-      int posicao = calcula_posicao(SENSOR);
-
-      if (posicao != 0) {
-        ultima_posicao_linha = posicao;  // guarda última leitura válida
-      }
-      // verifica se tem uma curva de 90
-      int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-      if (!inversaoAtiva){
-        if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
-          saidaCurva = CURVA_NAO_ENCONTRADA; 
-        }
-      }
-
-      if (faixa_de_pedestre) {
-        // filtro de ruido
-        if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
-          qnt_fim_inversao += 1;
-        }
-
-        if (qnt_fim_inversao >= 3) {
-          if (debugSD) write_sd(2);
-          realiza_faixa_de_pedestre();
-          faixa_de_pedestre = false;
-        }
-      }
-      
-      if (saidaCurva == CURVA_NAO_ENCONTRADA) {
-        calcula_erro();
-        
-        if (erro != LINHA_NAO_DETECTADA) {
-          // segue normalmente
-          calcula_PID();
-          if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
+      if (!debugMode) {
+        if (arrancadaMode) {
+            ler_sensores();
+            calcula_erro();
+            calcula_PID();
             ajusta_movimento();
-          }
+            if (debugSD) write_sd(0);
+        } else {
+            ler_sensores();
+            int posicao = calcula_posicao(SENSOR);
 
-          if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
-            tentativasRecuperacao = 0;
-          }
-
-          if (debugSD) write_sd(0);
-          contadorLinhaPerdida = 0; // reset se achou a linha
-        } else if (erro == LINHA_NAO_DETECTADA) {
-          // perdeu a linha
-          if (contadorLinhaPerdida == 0) {
-            tempoSemLinha = millis(); // marca quando perdeu
-          }
-          contadorLinhaPerdida++;
-
-          // verifica se a perda já é relevante (por contagem OU tempo)
-          if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
-                
-            stop_motors();
-
-            // tenta recuperar a linha
-            if (tenta_recuperar_linha()) {
-              contadorLinhaPerdida = 0; // recuperou com sucesso
-              tentativasRecuperacao++;
-              tempoUltimaRecuperacao = millis();
-              
-              if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
-                // já tentou muitas vezes → para definitivo
-                erro = erroAnterior;
-                if (debugSD) write_sd(3);
-                area_de_parada();
-              }
-            } else {
-              erro = erroAnterior;
-              if (debugSD) write_sd(3); // Log challenge 3: Stop area
-              area_de_parada(); // não conseguiu → para
+            if (posicao != 0) {
+                ultima_posicao_linha = posicao; // guarda última leitura válida
             }
-          }
-        }
-      } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
-        // evita ligar no cruzamento
-        if (calcula_sensores_ativos(SENSOR) > 1) {
-          if (!inversaoAtiva) {
-            marcacoesDireita = 0;
-            marcacoesEsquerda = 0;
-            
-            analisa_marcacoes();
-            
-            if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
-              unsigned long deltaTempo;
-              if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
-                deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
-              } else {
-                deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
-              }
-
-              if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
-                saidaCurva = (tempoMarcacaoDireita < tempoMarcacaoEsquerda) ? CURVA_DIREITA : CURVA_ESQUERDA;
-                realiza_marcha_re(saidaCurva);
-              } else {
-                turn_90(CURVA_EM_DUVIDA); // ta invertido nao sei porque
-                if (debugSD) write_sd(6);
-              }
-            } else if (marcacoesDireita >= 1 || marcacoesEsquerda >= 1) {
-              turn_90(saidaCurva);
+            // verifica se tem uma curva de 90
+            int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
+            if (!inversaoAtiva) {
+                if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
+                    saidaCurva = CURVA_NAO_ENCONTRADA;
+                }
+                if( SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
+                    saidaCurva = CURVA_NAO_ENCONTRADA;
+                }
             }
-          }
-          
-          stop_motors();
+
+            if (faixa_de_pedestre) {
+                // filtro de ruido
+                if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
+                    qnt_fim_inversao += 1;
+                }
+
+                if (qnt_fim_inversao >= 3) {
+                    if (debugSD) write_sd(2);
+                    realiza_faixa_de_pedestre();
+                    faixa_de_pedestre = false;
+                }
+            }
+
+            if (saidaCurva == CURVA_NAO_ENCONTRADA) {
+                calcula_erro();
+
+                if (erro != LINHA_NAO_DETECTADA) {
+                    // segue normalmente
+                    calcula_PID();
+                    if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
+                        ajusta_movimento();
+                    }
+
+                    if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
+                        tentativasRecuperacao = 0;
+                    }
+
+                    if (debugSD) write_sd(0);
+                    contadorLinhaPerdida = 0; // reset se achou a linha
+                } else if (erro == LINHA_NAO_DETECTADA) {
+                    // perdeu a linha
+                    if (contadorLinhaPerdida == 0) {
+                        tempoSemLinha = millis(); // marca quando perdeu
+                    }
+                    contadorLinhaPerdida++;
+
+                    // verifica se a perda já é relevante (por contagem OU tempo)
+                    if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
+
+                      //  stop_motors();
+
+                        // tenta recuperar a linha
+                        if (tenta_recuperar_linha()) {
+                            contadorLinhaPerdida = 0; // recuperou com sucesso
+                            tentativasRecuperacao++;
+                            tempoUltimaRecuperacao = millis();
+
+                            if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) {
+                                // já tentou muitas vezes → para definitivo
+                                erro = erroAnterior;
+                                if (debugSD) write_sd(3);
+                                area_de_parada();
+                            }
+                        } else {
+                            erro = erroAnterior;
+                            if (debugSD) write_sd(3); // Log challenge 3: Stop area
+                            area_de_parada(); // não conseguiu → para
+                        }
+                    }
+                }
+            } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+                // evita ligar no cruzamento
+                if (calcula_sensores_ativos(SENSOR) > 1) {
+                    if (!inversaoAtiva) {
+                        marcacoesDireita = 0;
+                        marcacoesEsquerda = 0;
+                      
+
+                        analisa_marcacoes();
+
+                        if (marcacoesDireita >= 1 || marcacoesEsquerda >= 1) {
+                            //turn_left(255, 255);
+                            //delay(1500);
+                            turn_90(saidaCurva);
+                        }
+                    }
+
+                   //stop_motors();
+                }
+            }
         }
-      }
-    }
-  } else { 
-    if (debugMotor) {
-      test_motors();
     } else {
-      // Get the output of the car's data
-      ler_sensores();
-      imprime_serial();
+        if (debugMotor) {
+            test_motors();
+        } else {
+            // Get the output of the car's data
+            ler_sensores();
+            imprime_serial();
+        }
     }
-  }
 
-  delay(5);
+    delay(5);
 }
+  
