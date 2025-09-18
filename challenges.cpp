@@ -94,54 +94,22 @@ int calcula_posicao(int SENSOR[]) {
 void turn_90(int curvaEncontrada) {
   
   if (!inversaoAtiva) {
+    digitalWrite(LEDS, HIGH);
     unsigned long startTime = millis();
     // This timeout prevents the robot from getting stuck if it misreads the sensors.
     while ((millis() - startTime < 1000)) {
       // Move straight forward, not using line-following logic here.
       run(velocidadeBaseEsquerda, velocidadeBaseDireita);
       ler_sensores(); // Keep updating sensor values to check the condition.
-      if (calcula_sensores_ativos(SENSOR) == 5) {
-        break;
-      }
-    }
-    
-  //  stop_motors();
-  //  delay(100);
-    int posicao = calcula_posicao(SENSOR);
-  
-    // Ajuste proporcional (ex.: 10 graus por posição)
-    int ajuste = posicao * 5;  
-  
-    int anguloFinal = 80 + ajuste;
-  
-    // Stop the car for greater stability
-    //stop_motors();
-    //delay(200);
-  
-    erro = erroAnterior;
-    if (curvaEncontrada == CURVA_ESQUERDA) {
-      if (debugSD) write_sd(1);
- //     digitalWrite(LEDS, HIGH);
-      // delay(500);
-
-      while((SENSOR[2] == BRANCO && SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == PRETO ) || 
-      (SENSOR[3] == BRANCO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO)) {
-        turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        ler_sensores();
-      } 
-      //turn_until_angle(anguloFinal); 
-    } else if (curvaEncontrada == CURVA_DIREITA) {
-      if (debugSD) write_sd(4);
-   //   digitalWrite(LEDS, HIGH);
-
-      while(SENSOR[2] == BRANCO && SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == PRETO) {
-        turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        ler_sensores();
-      } 
     }
   
-    stop_motors();
-    delay(100); 
+    while (SENSOR_CURVA != BRANCO && SENSOR[0] != BRANCO && SENSOR[4] != BRANCO) {
+      turn_left(255, 255);
+      //ler_sensores();
+    }
+    delay(1700);
+    return;
+
     // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
     // digitalWrite(LEDS, HIGH);
     while (true) {
@@ -609,7 +577,7 @@ void test_motors() {
   stop_motors();
   delay(1000);
   
-  turn_90(CURVA_ESQUERDA);
+  turn_left(255, 255);
   delay(1000);
 
   run(255, 255);

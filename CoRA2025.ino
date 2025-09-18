@@ -278,6 +278,29 @@ const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 
 unsigned int qnt_fim_inversao =0;
 
+bool alinha_pela_curva(int SENSOR_CURVA[]) {
+  bool alinhamento_ativo = false;
+
+  // Verifica se APENAS o sensor de curva esquerdo detecta a linha (preto)
+  if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO && calcula_sensores_ativos(SENSOR) == 4) {
+    // O robô está se desviando para a direita, então precisa virar à esquerda.
+    // Para isso, desligamos o motor esquerdo e mantemos o direito funcionando.
+    run(velocidadeBaseDireita, 0); 
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(16); // Log para indicar alinhamento à esquerda
+  }
+  // Verifica se APENAS o sensor de curva direito detecta a linha (preto)
+  else if (SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == BRANCO && calcula_sensores_ativos(SENSOR) == 4) {
+    // O robô está se desviando para a esquerda, então precisa virar à direita.
+    // Para isso, desligamos o motor direito e mantemos o esquerdo funcionando.
+    run(0, velocidadeBaseEsquerda);
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(17); // Log para indicar alinhamento à direita
+  }
+
+  return alinhamento_ativo;
+}
+
 void loop() {  
   // verifica o estado do led
   verifica_estado_led();
