@@ -38,9 +38,9 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = (!arrancadaMode) ? 180 : 150; 
-const float Ki = (!arrancadaMode) ? 0.015 : 0;
-const float Kd = (!arrancadaMode) ? 150 : 0;
+const float Kp = (!arrancadaMode) ? 90 : 150; 
+const float Ki = (!arrancadaMode) ? 0 : 0;
+const float Kd = (!arrancadaMode) ? 5 : 0;
 
 float erro = 0;
 float erroAnterior = 0;
@@ -71,5 +71,5 @@ const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = true;
+bool debugSD = false;
 bool arrancadaMode = false;

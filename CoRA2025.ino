@@ -104,7 +104,7 @@ void calcula_erro() {
   }
 
   // Initialize variables for error calculation
-  int pesos[5] = {-2, -1, 0, 1, 2};
+  int pesos[5] = {-3, -1, 0, 1, 3};
   int somatorioErro = 0;
   int sensoresAtivos = 0;
 

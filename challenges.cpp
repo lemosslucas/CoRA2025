@@ -55,18 +55,13 @@ int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
   int sensores_pretos = calcula_sensores_ativos(SENSOR);
 
   // Curva à direita
-  if (SENSOR_CURVA[0] == PRETO && sensores_pretos >= 2 && SENSOR_CURVA[1] == BRANCO) {
+  if (SENSOR_CURVA[0] == PRETO && sensores_pretos >= 1 && SENSOR_CURVA[1] == BRANCO) {
     return CURVA_ESQUERDA;
   }
 
   // Curva à esquerda
-  if (SENSOR_CURVA[0] == BRANCO && sensores_pretos >= 2 && SENSOR_CURVA[1] == PRETO) {
+  if (SENSOR_CURVA[0] == BRANCO && sensores_pretos >= 1 && SENSOR_CURVA[1] == PRETO) {
     return CURVA_DIREITA;
-  }
-
-  // Caso de dúvida (linha reta com marca estranha)
-  if (SENSOR[1] == PRETO && SENSOR[3] == PRETO && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    return CURVA_EM_DUVIDA;
   }
 
   return CURVA_NAO_ENCONTRADA;
@@ -101,48 +96,54 @@ void turn_90(int curvaEncontrada) {
   if (!inversaoAtiva) {
     unsigned long startTime = millis();
     // This timeout prevents the robot from getting stuck if it misreads the sensors.
-    // (millis() - startTime < TIMEOUT_90_CURVE)
-    while (calcula_sensores_ativos(SENSOR) <= 1) {
+    while ((millis() - startTime < 1000)) {
       // Move straight forward, not using line-following logic here.
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      run(velocidadeBaseEsquerda, velocidadeBaseDireita);
       ler_sensores(); // Keep updating sensor values to check the condition.
+      if (calcula_sensores_ativos(SENSOR) == 5) {
+        break;
+      }
     }
-    delay(50);
     
-    stop_motors();
-    delay(100);
+  //  stop_motors();
+  //  delay(100);
     int posicao = calcula_posicao(SENSOR);
   
     // Ajuste proporcional (ex.: 10 graus por posição)
-    int ajuste = posicao * 0;  
+    int ajuste = posicao * 5;  
   
     int anguloFinal = 80 + ajuste;
   
     // Stop the car for greater stability
-    stop_motors();
-    delay(200);
+    //stop_motors();
+    //delay(200);
   
     erro = erroAnterior;
     if (curvaEncontrada == CURVA_ESQUERDA) {
       if (debugSD) write_sd(1);
-      digitalWrite(LEDS, HIGH);
+ //     digitalWrite(LEDS, HIGH);
+      // delay(500);
 
-      //while (SENSOR[2] != BRANCO) {
-       // turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        //ler_sensores();
-      //}
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(anguloFinal); 
+      while((SENSOR[2] == BRANCO && SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == PRETO ) || 
+      (SENSOR[3] == BRANCO && SENSOR[4] == BRANCO && SENSOR_CURVA[1] == BRANCO)) {
+        turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        ler_sensores();
+      } 
+      //turn_until_angle(anguloFinal); 
     } else if (curvaEncontrada == CURVA_DIREITA) {
       if (debugSD) write_sd(4);
-      digitalWrite(LEDS, HIGH);
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(anguloFinal);
+   //   digitalWrite(LEDS, HIGH);
+
+      while(SENSOR[2] == BRANCO && SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == PRETO) {
+        turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        ler_sensores();
+      } 
     }
   
     stop_motors();
     delay(100); 
     // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
+    // digitalWrite(LEDS, HIGH);
     while (true) {
       if (debugSD) write_sd(13);
       calcula_erro();
@@ -541,7 +542,11 @@ void analisa_marcacoes() {
     jaContouDireita = false;
     
     // If there is a curve, store the number of markers
-    while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+    while((calcula_sensores_ativos(SENSOR) != 5)) {
+      if (millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO) {
+        break;
+      }
+
       // Update sensor values
       ler_sensores();
       
@@ -564,10 +569,10 @@ void analisa_marcacoes() {
         marcacoesEsquerda = 1;
       }
 
-      // Ensure the robot stays on the line
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
+      // Ensure the robot stays on the line 
+      
+      run(200, 200);
+      
       if (debugSD) write_sd(9);
     }
   }
@@ -603,6 +608,10 @@ void test_motors() {
 
   stop_motors();
   delay(1000);
+  
+  turn_90(CURVA_ESQUERDA);
+  delay(1000);
+
   run(255, 255);
   delay(TIMEOUT_PERIODO_FAIXA);
   stop_motors();
