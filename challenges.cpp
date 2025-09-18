@@ -52,17 +52,16 @@ int calcula_sensores_ativos(int SENSOR[]) {
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  return false;
   int sensores_pretos = calcula_sensores_ativos(SENSOR);
 
   // Curva à direita
   if (SENSOR_CURVA[0] == PRETO && sensores_pretos >= 2 && SENSOR_CURVA[1] == BRANCO) {
-    return CURVA_ESQUERDA;
+    return CURVA_DIREITA;
   }
 
   // Curva à esquerda
   if (SENSOR_CURVA[0] == BRANCO && sensores_pretos >= 2 && SENSOR_CURVA[1] == PRETO) {
-    return CURVA_DIREITA;
+    return CURVA_ESQUERDA;
   }
 
   // Caso de dúvida (linha reta com marca estranha)
@@ -98,26 +97,25 @@ int calcula_posicao(int SENSOR[]) {
  * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
  */
 void turn_90(int curvaEncontrada) {
-  
   if (!inversaoAtiva) {
+    
     unsigned long startTime = millis();
     // This timeout prevents the robot from getting stuck if it misreads the sensors.
     // (millis() - startTime < TIMEOUT_90_CURVE)
-    while (calcula_sensores_ativos(SENSOR) <= 1) {
+    while (calcula_sensores_ativos(SENSOR) != 5) {
       // Move straight forward, not using line-following logic here.
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      run(120, 120);
       ler_sensores(); // Keep updating sensor values to check the condition.
     }
-    delay(50);
     
     stop_motors();
     delay(100);
     int posicao = calcula_posicao(SENSOR);
   
     // Ajuste proporcional (ex.: 10 graus por posição)
-    int ajuste = posicao * 0;  
+    int ajuste = posicao * 5;  
   
-    int anguloFinal = 80 + ajuste;
+    int anguloFinal = 90 + ajuste;
   
     // Stop the car for greater stability
     stop_motors();
@@ -128,17 +126,13 @@ void turn_90(int curvaEncontrada) {
       if (debugSD) write_sd(1);
       digitalWrite(LEDS, HIGH);
 
-      //while (SENSOR[2] != BRANCO) {
-       // turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        //ler_sensores();
-      //}
       turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
       turn_until_angle(anguloFinal); 
     } else if (curvaEncontrada == CURVA_DIREITA) {
       if (debugSD) write_sd(4);
       digitalWrite(LEDS, HIGH);
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(anguloFinal);
+    //  turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    //  turn_until_angle(anguloFinal);
     }
   
     stop_motors();
@@ -471,7 +465,6 @@ void realiza_marcha_re(int lado_da_curva) {
 }
 
 bool tenta_recuperar_linha() {
-  return false;
   unsigned long tempoPerdido = millis();
   int leiturasValidas = 0;
 
@@ -543,7 +536,7 @@ void analisa_marcacoes() {
     jaContouDireita = false;
     
     // If there is a curve, store the number of markers
-    while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+    while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO) || calcula_sensores_ativos(SENSOR) == 5) {
       // Update sensor values
       ler_sensores();
       
@@ -566,10 +559,11 @@ void analisa_marcacoes() {
         marcacoesEsquerda = 1;
       }
 
-      // Ensure the robot stays on the line
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
+      while (calcula_sensores_ativos(SENSOR) == 5) {
+        run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+        ler_sensores();
+      }
+      
       if (debugSD) write_sd(9);
     }
   }
@@ -588,8 +582,8 @@ void area_de_parada() {
 }
 
 void test_motors() {
-    //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-  //delay(3000);
+  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  delay(3000);
   //stop_motors();
   //delay(1000);
   //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
@@ -605,7 +599,7 @@ void test_motors() {
 
   stop_motors();
   delay(1000);
-  run(255, 255);
+  turn_90(CURVA_ESQUERDA);
   delay(TIMEOUT_PERIODO_FAIXA);
   stop_motors();
   delay(1000);

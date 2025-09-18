@@ -29,6 +29,7 @@ int velocidadeEsquerda = 0;
 // --- Timeouts ---
 const int TIMEOUT_FAIXA_PEDESTRE = 5100;
 const int TIMEOUT_MARCACAO = 400; // 550
+const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
 const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
 const int TIME_WITHOUT_LINE = 200;
 const int TIMEOUT_PERIODO_FAIXA = 2000;
@@ -38,7 +39,7 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = (!arrancadaMode) ? 95 : 150; 
+const float Kp = (!arrancadaMode) ? 90 : 150; 
 const float Ki = (!arrancadaMode) ? 0 : 0;
 const float Kd = (!arrancadaMode) ? 5 : 0;
 
@@ -67,9 +68,8 @@ unsigned long tempoUltimaCurva = 0;
 
 unsigned long tempoMarcacaoDireita = 0;
 unsigned long tempoMarcacaoEsquerda = 0;
-const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
-bool debugSD = true;
+bool debugSD = false;
 bool arrancadaMode = false;

@@ -76,8 +76,8 @@ void ler_sensores() {
  */
 void ajusta_movimento() { 
   // Change the speed value
-  velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
-  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
+  velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 200);
+  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 200);
   // Send the new speed to the run function
   run(velocidadeDireita, velocidadeEsquerda);
 }
@@ -293,7 +293,7 @@ bool alinha_pela_curva(int SENSOR_CURVA[]) {
   bool alinhamento_ativo = false;
 
   // Verifica se APENAS o sensor de curva esquerdo detecta a linha (preto)
-  if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+  if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO && calcula_sensores_ativos(SENSOR) == 4) {
     // O robô está se desviando para a direita, então precisa virar à esquerda.
     // Para isso, desligamos o motor esquerdo e mantemos o direito funcionando.
     run(velocidadeBaseDireita, 0); 
@@ -301,7 +301,7 @@ bool alinha_pela_curva(int SENSOR_CURVA[]) {
     if (debugSD) write_sd(16); // Log para indicar alinhamento à esquerda
   }
   // Verifica se APENAS o sensor de curva direito detecta a linha (preto)
-  else if (SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == BRANCO) {
+  else if (SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == BRANCO && calcula_sensores_ativos(SENSOR) == 4) {
     // O robô está se desviando para a esquerda, então precisa virar à direita.
     // Para isso, desligamos o motor direito e mantemos o esquerdo funcionando.
     run(0, velocidadeBaseEsquerda);
@@ -377,7 +377,7 @@ void loop() {
 
           if (debugSD) write_sd(0);
           contadorLinhaPerdida = 0; // reset se achou a linha
-        } else if (erro == 10) {
+        } else if (erro == LINHA_NAO_DETECTADA && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
           // perdeu a linha
           if (contadorLinhaPerdida == 0) {
             tempoSemLinha = millis(); // marca quando perdeu
@@ -385,13 +385,14 @@ void loop() {
           contadorLinhaPerdida++;
 
           // verifica se a perda já é relevante (por contagem OU tempo)
-          if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
+          if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000 || SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
                 
             stop_motors();
-
+            //I = 0 ; D = 0;
             // tenta recuperar a linha
             if (tenta_recuperar_linha()) {
               contadorLinhaPerdida = 0; // recuperou com sucesso
+              //I = 0 ; D = 0;
               tentativasRecuperacao++;
               tempoUltimaRecuperacao = millis();
               
@@ -415,7 +416,7 @@ void loop() {
             marcacoesDireita = 0;
             marcacoesEsquerda = 0;
             
-            //analisa_marcacoes();
+            analisa_marcacoes();
             
             if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
               unsigned long deltaTempo;
@@ -432,7 +433,7 @@ void loop() {
                 turn_90(CURVA_EM_DUVIDA); // ta invertido nao sei porque
                 if (debugSD) write_sd(6);
               }
-            } else if (marcacoesDireita >= 1 || marcacoesEsquerda >= 1) {
+            } else if (marcacoesDireita = 1 || marcacoesEsquerda == 1) {
               turn_90(saidaCurva);
             }
           }
@@ -450,6 +451,4 @@ void loop() {
       imprime_serial();
     }
   }
-
-  delay(5);
 }
