@@ -18,7 +18,7 @@ const int chipSelect = 10;
 float gyro_bias_z = 0.0;
 
 // --- Motores ---
-const int OFFSET_MOTORS = 5;
+const int OFFSET_MOTORS = 0;
 const int velocidadeBase = (!arrancadaMode) ? 210 : 255;
 const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
 const int velocidadeBaseEsquerda = velocidadeBase;
@@ -38,9 +38,9 @@ const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = (!arrancadaMode) ? 180 : 150; 
-const float Ki = (!arrancadaMode) ? 0.015 : 0;
-const float Kd = (!arrancadaMode) ? 150 : 0;
+const float Kp = (!arrancadaMode) ? 95 : 150; 
+const float Ki = (!arrancadaMode) ? 0 : 0;
+const float Kd = (!arrancadaMode) ? 5 : 0;
 
 float erro = 0;
 float erroAnterior = 0;

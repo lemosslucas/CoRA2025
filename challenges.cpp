@@ -52,6 +52,7 @@ int calcula_sensores_ativos(int SENSOR[]) {
  */
 
 int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
+  return false;
   int sensores_pretos = calcula_sensores_ativos(SENSOR);
 
   // Curva à direita
@@ -470,6 +471,7 @@ void realiza_marcha_re(int lado_da_curva) {
 }
 
 bool tenta_recuperar_linha() {
+  return false;
   unsigned long tempoPerdido = millis();
   int leiturasValidas = 0;
 

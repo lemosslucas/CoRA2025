@@ -104,7 +104,7 @@ void calcula_erro() {
   }
 
   // Initialize variables for error calculation
-  int pesos[5] = {-2, -1, 0, 1, 2};
+  int pesos[5] = {-3, -1, 0, 1, 3};
   int somatorioErro = 0;
   int sensoresAtivos = 0;
 
@@ -278,6 +278,40 @@ const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
 
 unsigned int qnt_fim_inversao =0;
 
+/**
+ * @brief Aligns the robot's path when only one curve sensor detects the line.
+ * * This function is designed to make gentle corrections to the robot's alignment.
+ * If the left curve sensor detects the line, it indicates the robot is drifting
+ * to the right. To correct this, the function turns off the left motor and keeps
+ * the right motor running, guiding the robot back to the left.
+ * Conversely, if the right curve sensor detects the line, the right motor is
+ * turned off to guide the robot back to the right.
+ * * @param SENSOR_CURVA Array containing the states of the curve sensors.
+ * @return bool Returns true if an alignment adjustment was made, otherwise false.
+ */
+bool alinha_pela_curva(int SENSOR_CURVA[]) {
+  bool alinhamento_ativo = false;
+
+  // Verifica se APENAS o sensor de curva esquerdo detecta a linha (preto)
+  if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO) {
+    // O robô está se desviando para a direita, então precisa virar à esquerda.
+    // Para isso, desligamos o motor esquerdo e mantemos o direito funcionando.
+    run(velocidadeBaseDireita, 0); 
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(16); // Log para indicar alinhamento à esquerda
+  }
+  // Verifica se APENAS o sensor de curva direito detecta a linha (preto)
+  else if (SENSOR_CURVA[1] == PRETO && SENSOR_CURVA[0] == BRANCO) {
+    // O robô está se desviando para a esquerda, então precisa virar à direita.
+    // Para isso, desligamos o motor direito e mantemos o esquerdo funcionando.
+    run(0, velocidadeBaseEsquerda);
+    alinhamento_ativo = true;
+    if (debugSD) write_sd(17); // Log para indicar alinhamento à direita
+  }
+
+  return alinhamento_ativo;
+}
+
 void loop() {  
   // verifica o estado do led
   verifica_estado_led();
@@ -321,6 +355,16 @@ void loop() {
         calcula_erro();
         
         if (erro != LINHA_NAO_DETECTADA) {
+          bool alinhamento_ocorreu = alinha_pela_curva(SENSOR_CURVA);
+
+          // Se o alinhamento NÃO ocorreu, segue a lógica PID normal.
+          if (!alinhamento_ocorreu) {
+            calcula_PID();
+            if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
+              ajusta_movimento();
+            }
+          }
+          
           // segue normalmente
           calcula_PID();
           if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
@@ -333,7 +377,7 @@ void loop() {
 
           if (debugSD) write_sd(0);
           contadorLinhaPerdida = 0; // reset se achou a linha
-        } else if (erro == LINHA_NAO_DETECTADA) {
+        } else if (erro == 10) {
           // perdeu a linha
           if (contadorLinhaPerdida == 0) {
             tempoSemLinha = millis(); // marca quando perdeu
@@ -371,7 +415,7 @@ void loop() {
             marcacoesDireita = 0;
             marcacoesEsquerda = 0;
             
-            analisa_marcacoes();
+            //analisa_marcacoes();
             
             if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
               unsigned long deltaTempo;
