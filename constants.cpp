@@ -1,75 +1,75 @@
 #include "constants.h"
 
 // Pinos dos Sensores de Linha
-const int sensor_curva_esquerda = 2;
-const int sensor_esquerda = 4;
-const int sensor_esquerda_central = 8;
-const int sensor_central = 17; //A3
-const int sensor_direita_central = 14; //A0
-const int sensor_direita = 15; //A1
-const int sensor_curva_direita = 16; //A2
+const int left_curve_sensor_pin = 2;
+const int left_sensor_pin = 4;
+const int left_central_sensor_pin = 8;
+const int central_sensor_pin = 17; //A3
+const int right_central_sensor_pin = 14; //A0
+const int right_sensor_pin = 15; //A1
+const int right_curve_sensor_pin = 16; //A2
 
 // Variáveis de Estado dos Sensores
 int SENSOR[5];
-int SENSOR_CURVA[2];
+int CURVE_SENSORS[2];
 
 // Giroscópio
 const int chipSelect = 10;
 float gyro_bias_z = 0.0;
 
 // --- Motores ---
-const int OFFSET_MOTORS = 5;
-const int velocidadeBase = (!arrancadaMode) ? 210 : 255;
-const int velocidadeBaseDireita = velocidadeBase - OFFSET_MOTORS;
-const int velocidadeBaseEsquerda = velocidadeBase;
-int velocidadeDireita = 0;
-int velocidadeEsquerda = 0;
+const int MOTOR_OFFSET = 5;
+const int base_speed = (!sprint_mode) ? 210 : 255;
+const int base_right_speed = base_speed - MOTOR_OFFSET;
+const int base_left_speed = base_speed;
+int right_speed = 0;
+int left_speed = 0;
 
 
 // --- Timeouts ---
-const int TIMEOUT_FAIXA_PEDESTRE = 5100;
-const int TIMEOUT_MARCACAO = 400; // 550
-const int TEMPO_MAX_LED_LIGADO = 1500; // 3 segundos
+const int PEDESTRIAN_CROSSING_TIMEOUT = 5100;
+const int MARKER_TIMEOUT = 400; // 550
+const int MAX_LED_ON_TIME = 1500; // 3 seconds
 const int TIME_WITHOUT_LINE = 200;
-const int TIMEOUT_PERIODO_FAIXA = 2000;
+const int CROSSING_PERIOD_TIMEOUT = 2000;
 
 // --- Tolerâncias ---
-const int LIMITE_TOLERANCIA_LINHA_PERDIDA = 50;
+const int LOST_LINE_TOLERANCE_LIMIT = 50;
 
 // --- PID ---
 // Constantes para o cálculo do PID
-const float Kp = (!arrancadaMode) ? 180 : 150; 
-const float Ki = (!arrancadaMode) ? 0.015 : 0;
-const float Kd = (!arrancadaMode) ? 150 : 0;
+const float Kp = (!sprint_mode) ? 180 : 150; 
+const float Ki = (!sprint_mode) ? 0.015 : 0;
+const float Kd = (!sprint_mode) ? 150 : 0;
 
-float erro = 0;
-float erroAnterior = 0;
+float error = 0;
+float previous_error = 0;
 float I = 0, P = 0, D = 0, PID = 0;
 
 // --- LEDs ---
 const int LEDS = 7;
-int tempoLedLigou = 0;
-bool ledLigado = false;
+int led_on_time = 0;
+bool led_on = false;
 
 
 // --- Desafios ---
-int saida_rotatoria = -1;
-bool faixa_de_pedestre = false;
-int saidaDesejada = 0;
-bool inversaoAtiva = false;
-int marcacoesDireita = 0, marcacoesEsquerda = 0;
-bool jaContouEsquerda = false, jaContouDireita = false;
-bool inversao_finalizada = false;
-int ultima_posicao_linha = 0;
+int roundabout_exit = -1;
+bool pedestrian_crossing_detected = false;
+int desired_exit = 0;
+bool inversion_active = false;
+int right_markers = 0, left_markers = 0;
+bool already_counted_left = false, already_counted_right = false;
+bool inversion_finished = false;
+int last_line_position = 0;
 
-const unsigned long DEBOUNCE_TEMPO_CURVA = 1000;
-unsigned long tempoUltimaCurva = 0;
+const unsigned long CURVE_DEBOUNCE_TIME = 1000;
+unsigned long last_curve_time = 0;
 
-unsigned long tempoMarcacaoDireita = 0;
-unsigned long tempoMarcacaoEsquerda = 0;
-const int TOLERANCIA_TEMPO_SIMULTANEO = 300;
+unsigned long right_marker_time = 0;
+unsigned long left_marker_time = 0;
+const int SIMULTANEOUS_TIME_TOLERANCE = 300;
 // --- Debug ---
 bool debugMode = false;
 bool debugMotor = false;
 bool debugSD = true;
-bool arrancadaMode = false;
+bool sprint_mode = false;

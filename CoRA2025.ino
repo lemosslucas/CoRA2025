@@ -23,13 +23,13 @@ void setup() {
   if (debugSD) setup_sd();
   
   // Sensor initialization
-  pinMode(sensor_esquerda, INPUT);
-  pinMode(sensor_esquerda_central, INPUT);
-  pinMode(sensor_central, INPUT);
-  pinMode(sensor_direita_central, INPUT);
-  pinMode(sensor_direita, INPUT);
-  pinMode(sensor_curva_esquerda, INPUT);
-  pinMode(sensor_curva_direita, INPUT);
+  pinMode(left_sensor_pin, INPUT);
+  pinMode(left_central_sensor_pin, INPUT);
+  pinMode(central_sensor_pin, INPUT);
+  pinMode(right_central_sensor_pin, INPUT);
+  pinMode(right_sensor_pin, INPUT);
+  pinMode(left_curve_sensor_pin, INPUT);
+  pinMode(right_curve_sensor_pin, INPUT);
   pinMode(LEDS, OUTPUT);
 
   // Gyroscope initialization
@@ -54,16 +54,17 @@ void setup() {
  * Updates the global arrays SENSOR and SENSOR_CURVA with the values
  * read from the corresponding digital pins. The value PRETO (1) indicates
  * that the sensor has detected the line, and BRANCO (0) that it has not.
+ * The value BLACK (1) indicates the sensor has detected the line, and WHITE (0) that it has not.
  */
-void ler_sensores() {
-  SENSOR[0] = digitalRead(sensor_esquerda);
-  SENSOR[1] = digitalRead(sensor_esquerda_central);
-  SENSOR[2] = digitalRead(sensor_central);
-  SENSOR[3] = digitalRead(sensor_direita_central);
-  SENSOR[4] = digitalRead(sensor_direita);
+void read_sensors() {
+  SENSOR[0] = digitalRead(left_sensor_pin);
+  SENSOR[1] = digitalRead(left_central_sensor_pin);
+  SENSOR[2] = digitalRead(central_sensor_pin);
+  SENSOR[3] = digitalRead(right_central_sensor_pin);
+  SENSOR[4] = digitalRead(right_sensor_pin);
 
-  SENSOR_CURVA[0] = digitalRead(sensor_curva_esquerda);
-  SENSOR_CURVA[1] = digitalRead(sensor_curva_direita);
+  CURVE_SENSORS[0] = digitalRead(left_curve_sensor_pin);
+  CURVE_SENSORS[1] = digitalRead(right_curve_sensor_pin);
 }
 
 /**
@@ -74,12 +75,12 @@ void ler_sensores() {
  * that the speed values remain within the valid range (0-255).
  * It then drives the motors with the new speeds.
  */
-void ajusta_movimento() { 
+void adjust_movement() { 
   // Change the speed value
-  velocidadeDireita = constrain(velocidadeBaseDireita - PID, 0, 255);
-  velocidadeEsquerda = constrain(velocidadeBaseEsquerda + PID, 0, 255);
+  right_speed = constrain(base_right_speed - PID, 0, 255);
+  left_speed = constrain(base_left_speed + PID, 0, 255);
   // Send the new speed to the run function
-  run(velocidadeDireita, velocidadeEsquerda);
+  run(right_speed, left_speed);
 }
 
 /**
@@ -92,34 +93,34 @@ void ajusta_movimento() {
  * If all sensors are on black, it considers the line lost.
  * The result is stored in the global variable erro.
  */
-void calcula_erro() {
+void calculate_error() {
   // Update sensor values
-  ler_sensores();
+  read_sensors();
 
   // Check for inversion, signaling a pedestrian crossing
-  verifica_inversao(SENSOR, SENSOR_CURVA);
+  check_inversion(SENSOR, CURVE_SENSORS);
 
-  if (inversao_finalizada) {
-    faixa_de_pedestre = true;
+  if (inversion_finished) {
+    pedestrian_crossing_detected = true;
   }
 
   // Initialize variables for error calculation
   int pesos[5] = {-2, -1, 0, 1, 2};
-  int somatorioErro = 0;
-  int sensoresAtivos = 0;
+  int error_sum = 0;
+  int active_sensors = 0;
 
   // Perform a summation with the sensor values and weights
   for (int i = 0; i < 5; i++) {
-    somatorioErro += SENSOR[i] * pesos[i];
-    sensoresAtivos += SENSOR[i];
+    error_sum += SENSOR[i] * pesos[i];
+    active_sensors += SENSOR[i];
   }
 
   // Determine the car's error
-  if (sensoresAtivos == QUANTIDADE_TOTAL_SENSORES) {
-    erro = LINHA_NAO_DETECTADA;
+  if (active_sensors == TOTAL_SENSORS) {
+    error = LINE_NOT_DETECTED;
   } else {
-    int sensoresInativos = QUANTIDADE_TOTAL_SENSORES - sensoresAtivos;
-    erro = somatorioErro / sensoresInativos;
+    int inactive_sensors = TOTAL_SENSORS - active_sensors;
+    error = error_sum / inactive_sensors;
   }
 }
 
@@ -134,18 +135,18 @@ void calcula_erro() {
  * The final PID value is the weighted sum of these components and is used to
  * adjust the motor speeds.
  */
-void calcula_PID() {
+void calculate_PID() {
   // Initialize variables for calculation
   PID = 0;
-  P = erro;
+  P = error;
   I = constrain(I + P, -255, 255);
-  D = erro - erroAnterior;
+  D = error - previous_error;
 
   // Calculate PID
   PID = (Kp * P) + (Ki * I) + (Kd * D) + OFFSET;
 
   // Update the previous error value
-  erroAnterior = erro;
+  previous_error = error;
 }
 
 /**
@@ -155,9 +156,9 @@ void calcula_PID() {
  * the PID output value, and the resulting speeds for the right and left motors
  * to the serial. Useful for calibrating and monitoring the robot's behavior.
  */
-void imprime_serial() {
+void print_serial() {
   // Print sensor values
-  Serial.print(SENSOR_CURVA[0]);
+  Serial.print(CURVE_SENSORS[0]);
   Serial.print(" | ");
 
   for (int i = 0; i < 5; i++) {
@@ -165,20 +166,20 @@ void imprime_serial() {
     Serial.print(" | ");
   }
 
-  Serial.print(SENSOR_CURVA[1]);
+  Serial.print(CURVE_SENSORS[1]);
   Serial.print(" | ");
 
   // Print Error, PID, and speed variables
   Serial.print("\tErro: ");
-  calcula_erro();
-  Serial.print(erro);
+  calculate_error();
+  Serial.print(error);
   Serial.print(" PID: ");
-  calcula_PID();
+  calculate_PID();
   Serial.print(PID);
   Serial.print(" Velocidade Direita: ");
-  Serial.print(velocidadeDireita);
+  Serial.print(right_speed);
   Serial.print(" Velocidade Esquerda: ");
-  Serial.println(velocidadeEsquerda);
+  Serial.println(left_speed);
   //turn_until_angle(90);
 
 }
@@ -213,7 +214,7 @@ void setup_sd() {
 
   if (logFile) {
     //logFile.println("Time,Error,Challenge,Inclinacao,Velocidade Direita,Velocidade Esquerda, sc0, s0, s1, s2, s3, s3, sc1"); 
-    logFile.println("Time,Error,Challenge,MarcacaoDireita,MarcacaoEsquerda,T_Dir,T_Esq,Velocidade Direita,Velocidade Esquerda,sc0,s0,s1,s2,s3,s4,sc1"); 
+    logFile.println("Time,Error,Challenge,RightMarkers,LeftMarkers,T_Right,T_Left,RightSpeed,LeftSpeed,sc0,s0,s1,s2,s3,s4,sc1"); 
     logFile.flush();
     if(debugMode) Serial.println("Log file created successfully.");
   } else {
@@ -227,23 +228,23 @@ void write_sd(int challenge_marker = 0) {
     // Escreve tempo, erro e marcador de desafio
     logFile.print(millis());
     logFile.print(",");
-    logFile.print(erro);
+    logFile.print(error);
     logFile.print(",");
     logFile.print(challenge_marker);
     logFile.print(",");
-    logFile.print(marcacoesDireita);
+    logFile.print(right_markers);
     logFile.print(",");
-    logFile.print(marcacoesEsquerda);
-    logFile.print(",");
-
-    logFile.print(tempoMarcacaoDireita);
-    logFile.print(",");
-    logFile.print(tempoMarcacaoEsquerda);
+    logFile.print(left_markers);
     logFile.print(",");
 
-    logFile.print(velocidadeDireita);
+    logFile.print(right_marker_time);
     logFile.print(",");
-    logFile.print(velocidadeEsquerda);
+    logFile.print(left_marker_time);
+    logFile.print(",");
+
+    logFile.print(right_speed);
+    logFile.print(",");
+    logFile.print(left_speed);
 
     // Adiciona valores dos 5 sensores da linha
     for (int i = 0; i < 5; i++) {
@@ -254,7 +255,7 @@ void write_sd(int challenge_marker = 0) {
     // Adiciona sensores de curva
     for (int i = 0; i < 2; i++) {
       logFile.print(",");
-      logFile.print(SENSOR_CURVA[i]);
+      logFile.print(CURVE_SENSORS[i]);
     }
     // Quebra de linha no final
     logFile.println();
@@ -269,127 +270,127 @@ void write_sd(int challenge_marker = 0) {
 }
 
 
-unsigned int contadorLinhaPerdida = 0;
-unsigned long tempoSemLinha = 0;
-int tentativasRecuperacao = 0;
-const int LIMITE_TENTATIVAS_RECUPERACAO = 3;
-unsigned long tempoUltimaRecuperacao = 0;
-const unsigned long TEMPO_RESET_TENTATIVAS = 3000;
+unsigned int lost_line_counter = 0;
+unsigned long time_since_line_lost = 0;
+int recovery_attempts = 0;
+const int RECOVERY_ATTEMPT_LIMIT = 3;
+unsigned long last_recovery_time = 0;
+const unsigned long ATTEMPT_RESET_TIME = 3000;
 
-unsigned int qnt_fim_inversao =0;
+unsigned int inversion_end_counter = 0;
 
 void loop() {  
   // verifica o estado do led
-  verifica_estado_led();
+  check_led_status();
 
   if (!debugMode) {
-    if (arrancadaMode) {
-      ler_sensores();
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
+    if (sprint_mode) {
+      read_sensors();
+      calculate_error();
+      calculate_PID();
+      adjust_movement();
       if (debugSD) write_sd(0);
     } else {
-      ler_sensores();
-      int posicao = calcula_posicao(SENSOR);
+      read_sensors();
+      int position = calculate_position(SENSOR);
 
-      if (posicao != 0) {
-        ultima_posicao_linha = posicao;  // guarda última leitura válida
+      if (position != 0) {
+        last_line_position = position;  // store last valid reading
       }
       // verifica se tem uma curva de 90
-      int saidaCurva = verifica_curva_90(SENSOR, SENSOR_CURVA);
-      if (!inversaoAtiva){
-        if (saidaCurva != CURVA_NAO_ENCONTRADA && (millis() - tempoUltimaCurva < DEBOUNCE_TEMPO_CURVA)) {
-          saidaCurva = CURVA_NAO_ENCONTRADA; 
+      int curve_exit = check_90_degree_curve(SENSOR, CURVE_SENSORS);
+      if (!inversion_active){
+        if (curve_exit != NO_CURVE_FOUND && (millis() - last_curve_time < CURVE_DEBOUNCE_TIME)) {
+          curve_exit = NO_CURVE_FOUND; 
         }
       }
 
-      if (faixa_de_pedestre) {
+      if (pedestrian_crossing_detected) {
         // filtro de ruido
-        if (calcula_sensores_ativos(SENSOR) == QUANTIDADE_TOTAL_SENSORES) {
-          qnt_fim_inversao += 1;
+        if (count_active_sensors(SENSOR) == TOTAL_SENSORS) {
+          inversion_end_counter += 1;
         }
 
-        if (qnt_fim_inversao >= 3) {
+        if (inversion_end_counter >= 3) {
           if (debugSD) write_sd(2);
-          realiza_faixa_de_pedestre();
-          faixa_de_pedestre = false;
+          perform_pedestrian_crossing();
+          pedestrian_crossing_detected = false;
         }
       }
       
-      if (saidaCurva == CURVA_NAO_ENCONTRADA) {
-        calcula_erro();
+      if (curve_exit == NO_CURVE_FOUND) {
+        calculate_error();
         
-        if (erro != LINHA_NAO_DETECTADA) {
+        if (error != LINE_NOT_DETECTED) {
           // segue normalmente
-          calcula_PID();
-          if ((SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) || inversaoAtiva) {
-            ajusta_movimento();
+          calculate_PID();
+          if ((CURVE_SENSORS[0] == BLACK && CURVE_SENSORS[1] == BLACK) || inversion_active) {
+            adjust_movement();
           }
 
-          if (millis() - tempoUltimaRecuperacao > TEMPO_RESET_TENTATIVAS) {
-            tentativasRecuperacao = 0;
+          if (millis() - last_recovery_time > ATTEMPT_RESET_TIME) {
+            recovery_attempts = 0;
           }
 
           if (debugSD) write_sd(0);
-          contadorLinhaPerdida = 0; // reset se achou a linha
-        } else if (erro == LINHA_NAO_DETECTADA) {
+          lost_line_counter = 0; // reset if line is found
+        } else if (error == LINE_NOT_DETECTED) {
           // perdeu a linha
-          if (contadorLinhaPerdida == 0) {
-            tempoSemLinha = millis(); // marca quando perdeu
+          if (lost_line_counter == 0) {
+            time_since_line_lost = millis(); // mark when it was lost
           }
-          contadorLinhaPerdida++;
+          lost_line_counter++;
 
           // verifica se a perda já é relevante (por contagem OU tempo)
-          if (contadorLinhaPerdida > LIMITE_TOLERANCIA_LINHA_PERDIDA || millis() - tempoSemLinha > 1000) {
+          if (lost_line_counter > LOST_LINE_TOLERANCE_LIMIT || millis() - time_since_line_lost > 1000) {
                 
             stop_motors();
 
             // tenta recuperar a linha
-            if (tenta_recuperar_linha()) {
-              contadorLinhaPerdida = 0; // recuperou com sucesso
-              tentativasRecuperacao++;
-              tempoUltimaRecuperacao = millis();
+            if (try_to_recover_line()) {
+              lost_line_counter = 0; // recovered successfully
+              recovery_attempts++;
+              last_recovery_time = millis();
               
-              if (tentativasRecuperacao >= LIMITE_TENTATIVAS_RECUPERACAO) { 
+              if (recovery_attempts >= RECOVERY_ATTEMPT_LIMIT) { 
                 // já tentou muitas vezes → para definitivo
-                erro = erroAnterior;
+                error = previous_error;
                 if (debugSD) write_sd(3);
-                area_de_parada();
+                perform_stop_area();
               }
             } else {
-              erro = erroAnterior;
+              error = previous_error;
               if (debugSD) write_sd(3); // Log challenge 3: Stop area
-              area_de_parada(); // não conseguiu → para
+              perform_stop_area(); // couldn't recover -> stop
             }
           }
         }
-      } else if (saidaCurva != CURVA_NAO_ENCONTRADA) {
+      } else if (curve_exit != NO_CURVE_FOUND) {
         // evita ligar no cruzamento
-        if (calcula_sensores_ativos(SENSOR) > 1) {
-          if (!inversaoAtiva) {
-            marcacoesDireita = 0;
-            marcacoesEsquerda = 0;
+        if (count_active_sensors(SENSOR) > 1) {
+          if (!inversion_active) {
+            right_markers = 0;
+            left_markers = 0;
             
-            analisa_marcacoes();
+            analyze_markers();
             
-            if (marcacoesDireita == 1 && marcacoesEsquerda == 1 ) {
-              unsigned long deltaTempo;
-              if (tempoMarcacaoDireita > tempoMarcacaoEsquerda) {
-                deltaTempo = tempoMarcacaoDireita - tempoMarcacaoEsquerda;
+            if (right_markers == 1 && left_markers == 1 ) {
+              unsigned long time_delta;
+              if (right_marker_time > left_marker_time) {
+                time_delta = right_marker_time - left_marker_time;
               } else {
-                deltaTempo = tempoMarcacaoEsquerda - tempoMarcacaoDireita;
+                time_delta = left_marker_time - right_marker_time;
               }
 
-              if (deltaTempo >= TOLERANCIA_TEMPO_SIMULTANEO) {
-                saidaCurva = (tempoMarcacaoDireita < tempoMarcacaoEsquerda) ? CURVA_DIREITA : CURVA_ESQUERDA;
-                realiza_marcha_re(saidaCurva);
+              if (time_delta >= SIMULTANEOUS_TIME_TOLERANCE) {
+                curve_exit = (right_marker_time < left_marker_time) ? RIGHT_CURVE : LEFT_CURVE;
+                perform_reverse_gear(curve_exit);
               } else {
-                turn_90(CURVA_EM_DUVIDA); // ta invertido nao sei porque
+                turn_90(DOUBTFUL_CURVE); // it's inverted, I don't know why
                 if (debugSD) write_sd(6);
               }
-            } else if (marcacoesDireita >= 1 || marcacoesEsquerda >= 1) {
-              turn_90(saidaCurva);
+            } else if (right_markers >= 1 || left_markers >= 1) {
+              turn_90(curve_exit);
             }
           }
           
@@ -402,8 +403,8 @@ void loop() {
       test_motors();
     } else {
       // Get the output of the car's data
-      ler_sensores();
-      imprime_serial();
+      read_sensors();
+      print_serial();
     }
   }
 

@@ -3,13 +3,13 @@
 #include "constants.h"
 #include "CoRA2025.h"
 
-void verifica_estado_led() {
-  // verifica se o led ta ligado
-  if (ledLigado) {
-    // verifica se o led ta ligado por mais de 3 segundos
-    if (millis() - tempoLedLigou >= TEMPO_MAX_LED_LIGADO) {
+void check_led_status() {
+  // check if the led is on
+  if (led_on) {
+    // check if the led has been on for more than MAX_LED_ON_TIME
+    if (millis() - led_on_time >= MAX_LED_ON_TIME) {
       digitalWrite(LEDS, LOW);
-      ledLigado = false;
+      led_on = false;
     }
   }
 }
@@ -22,15 +22,15 @@ void verifica_estado_led() {
  * @param SENSOR Array with the state of the 5 main line-following sensors.
  * @return int The total number of active sensors.
  */
-int calcula_sensores_ativos(int SENSOR[]) {
-  int sensoresAtivos = 0;
+int count_active_sensors(int SENSOR[]) {
+  int active_sensors = 0;
   // Calculates the number of active sensors
   for(int i = 0; i < 5; i++) {
-    sensoresAtivos += SENSOR[i];
+    active_sensors += SENSOR[i];
   }
   
   // Returns the number of active sensors
-  return sensoresAtivos;
+  return active_sensors;
 }
 
 /**
@@ -42,49 +42,49 @@ int calcula_sensores_ativos(int SENSOR[]) {
  * leituras consecutivas (3, por padrão) antes de confirmar a curva e retornar sua direção.
  * 
  * @param SENSOR Array containing the states of the main sensors.
- * @param SENSOR_CURVA Array containing the states of the curve detection sensors.
+ * @param CURVE_SENSORS Array containing the states of the curve detection sensors.
  * 
  * @return int An integer representing the turn direction:
- * - `CURVA_ESQUERDA` se uma curva à esquerda for confirmada.
- * - `CURVA_DIREITA` se uma curva à direita for confirmada.
- * - `CURVA_EM_DUVIDA` se a direção da curva for confirmada, mas incerta.
- * - `CURVA_NAO_ENCONTRADA` se nenhuma curva for detectada ou o limiar de detecção não for atingido.
+ * - `LEFT_CURVE` if a left turn is confirmed.
+ * - `RIGHT_CURVE` if a right turn is confirmed.
+ * - `DOUBTFUL_CURVE` if the turn direction is confirmed but uncertain.
+ * - `NO_CURVE_FOUND` if no curve is detected or the detection threshold is not met.
  */
 
-int verifica_curva_90(int SENSOR[], int SENSOR_CURVA[]) {
-  int sensores_pretos = calcula_sensores_ativos(SENSOR);
+int check_90_degree_curve(int SENSOR[], int CURVE_SENSORS[]) {
+  int black_sensors = count_active_sensors(SENSOR);
 
-  // Curva à direita
-  if (SENSOR_CURVA[0] == PRETO && sensores_pretos >= 2 && SENSOR_CURVA[1] == BRANCO) {
-    return CURVA_ESQUERDA;
+  // Right curve
+  if (CURVE_SENSORS[0] == BLACK && black_sensors >= 2 && CURVE_SENSORS[1] == WHITE) {
+    return LEFT_CURVE;
   }
 
-  // Curva à esquerda
-  if (SENSOR_CURVA[0] == BRANCO && sensores_pretos >= 2 && SENSOR_CURVA[1] == PRETO) {
-    return CURVA_DIREITA;
+  // Left curve
+  if (CURVE_SENSORS[0] == WHITE && black_sensors >= 2 && CURVE_SENSORS[1] == PRETO) {
+    return RIGHT_CURVE;
   }
 
-  // Caso de dúvida (linha reta com marca estranha)
-  if (SENSOR[1] == PRETO && SENSOR[3] == PRETO && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    return CURVA_EM_DUVIDA;
+  // Case of doubt (straight line with a strange mark)
+  if (SENSOR[1] == BLACK && SENSOR[3] == BLACK && CURVE_SENSORS[0] == WHITE && CURVE_SENSORS[1] == WHITE) {
+    return DOUBTFUL_CURVE;
   }
 
-  return CURVA_NAO_ENCONTRADA;
+  return NO_CURVE_FOUND;
 }
 
-int calcula_posicao(int SENSOR[]) {
-  int pesos[5] = {-2, -1, 0, 1, 2};
-  int somaPesos = 0, somaAtivos = 0;
+int calculate_position(int SENSOR[]) {
+  int weights[5] = {-2, -1, 0, 1, 2};
+  int weight_sum = 0, active_sum = 0;
 
   for (int i = 0; i < 5; i++) {
-    if (SENSOR[i] == PRETO) {
-      somaPesos += pesos[i];
-      somaAtivos++;
+    if (SENSOR[i] == BLACK) {
+      weight_sum += weights[i];
+      active_sum++;
     }
   }
 
-  if (somaAtivos == 0) return 0; // Falha de leitura
-  return somaPesos / somaAtivos; // valor médio
+  if (active_sum == 0) return 0; // Reading failure
+  return weight_sum / active_sum; // average value
 }
 
 
@@ -94,68 +94,68 @@ int calcula_posicao(int SENSOR[]) {
  * Based on the detected turn direction, this function stops the robot for
  * stability and then performs a precise 90-degree turn.
  * 
- * @param curvaEncontrada The direction of the turn, e.g., `CURVA_ESQUERDA` or `CURVA_DIREITA`.
+ * @param found_curve The direction of the turn, e.g., `LEFT_CURVE` or `RIGHT_CURVE`.
  */
-void turn_90(int curvaEncontrada) {
+void turn_90(int found_curve) {
   
-  if (!inversaoAtiva) {
+  if (!inversion_active) {
     unsigned long startTime = millis();
     // This timeout prevents the robot from getting stuck if it misreads the sensors.
     // (millis() - startTime < TIMEOUT_90_CURVE)
-    while (calcula_sensores_ativos(SENSOR) <= 1) {
+    while (count_active_sensors(SENSOR) <= 1) {
       // Move straight forward, not using line-following logic here.
-      run(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      ler_sensores(); // Keep updating sensor values to check the condition.
+      run(base_right_speed, base_left_speed);
+      read_sensors(); // Keep updating sensor values to check the condition.
     }
     delay(50);
     
     stop_motors();
     delay(100);
-    int posicao = calcula_posicao(SENSOR);
+    int position = calculate_position(SENSOR);
   
-    // Ajuste proporcional (ex.: 10 graus por posição)
-    int ajuste = posicao * 0;  
+    // Proportional adjustment (e.g., 10 degrees per position)
+    int adjustment = position * 0;  
   
-    int anguloFinal = 80 + ajuste;
+    int final_angle = 80 + adjustment;
   
     // Stop the car for greater stability
     stop_motors();
     delay(200);
   
-    erro = erroAnterior;
-    if (curvaEncontrada == CURVA_ESQUERDA) {
+    error = previous_error;
+    if (found_curve == LEFT_CURVE) {
       if (debugSD) write_sd(1);
       digitalWrite(LEDS, HIGH);
 
-      //while (SENSOR[2] != BRANCO) {
-       // turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-        //ler_sensores();
+      //while (SENSOR[2] != WHITE) {
+       // turn_right(base_right_speed, base_left_speed);
+        //read_sensors();
       //}
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(anguloFinal); 
-    } else if (curvaEncontrada == CURVA_DIREITA) {
+      turn_right(base_right_speed, base_left_speed);
+      turn_until_angle(final_angle); 
+    } else if (found_curve == RIGHT_CURVE) {
       if (debugSD) write_sd(4);
       digitalWrite(LEDS, HIGH);
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
-      turn_until_angle(anguloFinal);
+      turn_right(base_right_speed, base_left_speed);
+      turn_until_angle(final_angle);
     }
   
     stop_motors();
     delay(100); 
-    // ANDA UM POUCO PRA EVITAR DETECCAO DUPLA
+    // MOVE A BIT TO AVOID DOUBLE DETECTION
     while (true) {
       if (debugSD) write_sd(13);
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
-      if (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO && SENSOR[2] == BRANCO) {
+      calculate_error();
+      calculate_PID();
+      adjust_movement();
+      if (CURVE_SENSORS[0] == BLACK && CURVE_SENSORS[1] == BLACK && SENSOR[2] == WHITE) {
         break;
       }
     }
   
-    tempoUltimaCurva = millis();
-    // zera os valores da marcacao pra evitar falso positvo
-    marcacoesDireita = 0; marcacoesDireita = 0;
+    last_curve_time = millis();
+    // reset marker values to avoid false positives
+    right_markers = 0; left_markers = 0;
   }
 }
 
@@ -228,11 +228,11 @@ void turn_until_angle(int target_angle = 90) {
  * @param sensor The sensor output value (0 for WHITE, 1 for BLACK).
  * @return int The inverted sensor value (1 becomes 0, 0 becomes 1).
  */
-int inverte_sensor(int sensor){
-  if (sensor == 1){ 
-    return 0;
+int invert_sensor(int sensor_value){
+  if (sensor_value == BLACK){ 
+    return WHITE;
   } 
-  return 1;
+  return BLACK;
 }
 
 unsigned long tempoInversaoAtivada = 0;
@@ -240,24 +240,24 @@ unsigned long tempoInversaoAtivada = 0;
 bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   int ativos = calcula_sensores_ativos(SENSOR);
 
-  // ou ativos == 1 tem q ver
-  if (ativos == 1 && !inversaoAtiva && SENSOR_CURVA[0] == BRANCO && SENSOR_CURVA[1] == BRANCO) {
-    inversaoAtiva = true;
-    tempoInversaoAtivada = millis();
+  // or active_sensors == 1, need to check
+  if (ativos == 1 && !inversion_active && SENSOR_CURVA[0] == WHITE && SENSOR_CURVA[1] == WHITE) {
+    inversion_active = true;
+    inversion_activation_time = millis();
     if (debugSD) write_sd(10);
   }
 
-  if (inversaoAtiva && millis() - tempoInversaoAtivada > 1000) { // só desliga depois de 200ms
-    if (ativos >= 3 && SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO) {
-      inversaoAtiva = false;
+  if (inversion_active && millis() - inversion_activation_time > 1000) { // only turns off after 200ms
+    if (ativos >= 3 && SENSOR_CURVA[0] == BLACK && SENSOR_CURVA[1] == BLACK) {
+      inversion_active = false;
       if (debugSD) write_sd(11);
-      inversao_finalizada = true;
+      inversion_finished = true;
       return false;
     }
   }
 
-  // Se o modo de inversão está ativo, inverta a leitura dos sensores.
-  if (inversaoAtiva) {
+  // If inversion mode is active, invert the sensor readings.
+  if (inversion_active) {
     for (int i = 0; i < 5; i++) {
       SENSOR[i] = inverte_sensor(SENSOR[i]);
     }    
@@ -268,30 +268,30 @@ bool verifica_inversao(int SENSOR[], int SENSOR_CURVA[]) {
   return false;
 }
 
-void realiza_faixa_de_pedestre() {
+void perform_pedestrian_crossing() {
   if (debugSD) write_sd(2);
   stop_motors();
-  delay(TIMEOUT_FAIXA_PEDESTRE); 
-  // precisa de uma logica que alinha com quase 100% de certeza para ele nao perder a linha q ele vai encontra na frente
+  delay(PEDESTRIAN_CROSSING_TIMEOUT); 
+  // needs logic that aligns with almost 100% certainty so it doesn't lose the line it will find ahead
   
   if (debugSD) write_sd(12);
   unsigned long start = millis();
-  while (erro == LINHA_NAO_DETECTADA || millis() - start < 700) {
-    ler_sensores();
-    calcula_erro();
+  while (error == LINE_NOT_DETECTED || millis() - start < 700) {
+    read_sensors();
+    calculate_error();
     run_backward(150, 150);
   }
   stop_motors();
   
-  int pos = calcula_posicao(SENSOR); // -2..2
+  int pos = calculate_position(SENSOR); // -2..2
   if (pos < -1) {
-    run(-velocidadeBaseDireita, velocidadeBaseEsquerda);
+    run(-base_right_speed, base_left_speed);
   } else if (pos > 1) {
-    run(velocidadeBaseDireita, -velocidadeBaseEsquerda);
+    run(base_right_speed, -base_left_speed);
   }
 
-  while (SENSOR[1] != PRETO && SENSOR[2] != BRANCO && SENSOR[3] != PRETO) {
-    ler_sensores();
+  while (SENSOR[1] != BLACK && SENSOR[2] != WHITE && SENSOR[3] != BLACK) {
+    read_sensors();
   }
   
   stop_motors();
@@ -300,27 +300,27 @@ void realiza_faixa_de_pedestre() {
   if (debugSD) write_sd(14);
   
   run(255, 255);
-  delay(TIMEOUT_PERIODO_FAIXA);
+  delay(CROSSING_PERIOD_TIMEOUT);
   
-  ler_sensores();
-  calcula_erro();
-  while(SENSOR[2] != BRANCO) {
+  read_sensors();
+  calculate_error();
+  while(SENSOR[2] != WHITE) {
     run(255, 255);
-    ler_sensores();
-    calcula_erro();
+    read_sensors();
+    calculate_error();
   }
 
-  while(SENSOR[1] == PRETO && SENSOR[2] == BRANCO && SENSOR[3] == PRETO) {
-    ler_sensores();
-    calcula_erro();
-    calcula_PID();
-    ajusta_movimento();
+  while(SENSOR[1] == BLACK && SENSOR[2] == WHITE && SENSOR[3] == BLACK) {
+    read_sensors();
+    calculate_error();
+    calculate_PID();
+    adjust_movement();
   }
 
   if(debugSD) write_sd(15); // Log: Fim da travessia
   
   // Zera a flag para não entrar neste desafio novamente por engano
-  inversao_finalizada = false;
+  inversion_finished = false;
 } 
 
 /**
@@ -329,15 +329,15 @@ void realiza_faixa_de_pedestre() {
  * Compares the number of markers detected on the left and right sides.
  * The robot should exit on the side with fewer markers.
  * 
- * @param marcacoesEsquerda The number of markers detected on the left.
- * @param marcacoesDireita The number of markers detected on the right.
- * @return int The determined exit side (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ * @param left_markers The number of markers detected on the left.
+ * @param right_markers The number of markers detected on the right.
+ * @return int The determined exit side (`RIGHT_EXIT` or `LEFT_EXIT`).
  */
-int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
-  if (marcacoesDireita < marcacoesEsquerda) {
-    return SAIDA_DIREITA;
+int determine_curve_exit(int left_markers, int right_markers) {
+  if (right_markers < left_markers) {
+    return RIGHT_EXIT;
   } else {
-    return SAIDA_ESQUERDA;
+    return LEFT_EXIT;
   }
 }
 
@@ -348,20 +348,20 @@ int determina_saida_curva(int marcacoesEsquerda, int marcacoesDireita) {
  * Based on the total number of markers seen before entering the roundabout,
  * this function sets the desired exit number.
  * 
- * @param saidaCurva The direction of the curve to enter the roundabout (currently unused).
- * @param numeroDeMarcas The total number of markers detected.
+ * @param curve_exit The direction of the curve to enter the roundabout (currently unused).
+ * @param number_of_marks The total number of markers detected.
  * @return int The desired exit number (1, 2, or 3).
  */
-int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
-  if (numeroDeMarcas == 2) {
-    saidaDesejada = 1; // 1ª Saída
-  } else if (numeroDeMarcas == 3) {
-    saidaDesejada = 2; // 2ª Saída
-  } else if (numeroDeMarcas >= 4) { 
-    saidaDesejada = 3; // 3ª Saída
+int determine_roundabout_exit(int curve_exit, int number_of_marks) {
+  if (number_of_marks == 2) {
+    desired_exit = 1; // 1st Exit
+  } else if (number_of_marks == 3) {
+    desired_exit = 2; // 2nd Exit
+  } else if (number_of_marks >= 4) { 
+    desired_exit = 3; // 3rd Exit
   }
   
-  return saidaDesejada;
+  return desired_exit;
 }
 
 /**
@@ -370,72 +370,72 @@ int determina_saida_rotatoria(int saidaCurva, int numeroDeMarcas) {
  * The robot enters the roundabout, follows the line, and counts exits until
  * it reaches the `saidaDesejada`. It then takes that exit.
  * 
- * @param saidaCurva The direction to turn to enter the roundabout.
- * @param saidaDesejada The target exit number to take.
+ * @param curve_exit The direction to turn to enter the roundabout.
+ * @param desired_exit The target exit number to take.
  */
-void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
+void perform_roundabout(int curve_exit, int desired_exit) {
   if (debugSD) write_sd(8);
   
-  // Flag para controlar se estamos procurando uma saída ou esperando passar por uma já contada
-  bool aguardando_realinhar = false;
+  // Flag to control if we are looking for an exit or waiting to pass one already counted
+  bool waiting_for_realign = false;
   
-  // Contador para adicionar tolerância à detecção da saída
-  static int contador_deteccao_saida = 0;
-  const int TOLERANCIA_SAIDA = 2; // Exige 2 leituras consecutivas para confirmar a saída
+  // Counter to add tolerance to exit detection
+  static int exit_detection_counter = 0;
+  const int EXIT_TOLERANCE = 2; // Requires 2 consecutive readings to confirm the exit
 
-  // Zera a contagem no início do desafio
-  int saidaAtual = 0;
+  // Reset the count at the beginning of the challenge
+  int current_exit = 0;
 
-  // 1. Vira 90 graus para entrar na rotatória (usando o giroscópio)
-  if (saidaCurva == SAIDA_ESQUERDA) {
-    turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  // 1. Turn 90 degrees to enter the roundabout (using the gyroscope)
+  if (curve_exit == LEFT_EXIT) {
+    turn_left(base_right_speed, base_left_speed);
     turn_until_angle(90);
-  } else if (saidaCurva == SAIDA_DIREITA) {
-    turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  } else if (curve_exit == RIGHT_EXIT) {
+    turn_right(base_right_speed, base_left_speed);
     turn_until_angle(90);
   }
 
-  // 2. Navega na rotatória até encontrar a saída correta
-  while (saidaAtual < saidaDesejada) {
-    // Lógica principal de seguir linha é executada em todos os ciclos
-    calcula_erro();
-    ajusta_movimento();
+  // 2. Navigate the roundabout until the correct exit is found
+  while (current_exit < desired_exit) {
+    // Main line-following logic is executed in every cycle
+    calculate_error();
+    adjust_movement();
 
-    // Assumindo que a rotatória é para a direita (sentido anti-horário)
-    bool saida_detectada = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == BRANCO);
+    // Assuming the roundabout is to the right (counter-clockwise)
+    bool exit_detected = (CURVE_SENSORS[0] == BLACK && CURVE_SENSORS[1] == WHITE);
     
-    // Condição que indica que o robô está de volta à curva principal
-    bool robo_realinhado = (SENSOR_CURVA[0] == PRETO && SENSOR_CURVA[1] == PRETO);
+    // Condition indicating the robot is back on the main curve
+    bool robot_realigned = (CURVE_SENSORS[0] == BLACK && CURVE_SENSORS[1] == BLACK);
 
-    // Lógica principal de contagem
-    if (!aguardando_realinhar) {
-      // procura a saida
-      if (saida_detectada) {
-        contador_deteccao_saida++; // Incrementa contador se vir uma possível saída
+    // Main counting logic
+    if (!waiting_for_realign) {
+      // search for the exit
+      if (exit_detected) {
+        exit_detection_counter++; // Increment counter if a possible exit is seen
       } else {
-        contador_deteccao_saida = 0; // Zera se a condição falhar
+        exit_detection_counter = 0; // Reset if the condition fails
       }
 
-      // Se a saída foi vista por leituras suficientes, conta e ativa a flag de espera
-      if (contador_deteccao_saida >= TOLERANCIA_SAIDA) {
-        saidaAtual++;
-        aguardando_realinhar = true; // Ativa a flag para parar de procurar
-        contador_deteccao_saida = 0; // Zera o contador para a próxima busca
+      // If the exit has been seen for enough readings, count it and activate the wait flag
+      if (exit_detection_counter >= EXIT_TOLERANCE) {
+        current_exit++;
+        waiting_for_realign = true; // Activate the flag to stop searching
+        exit_detection_counter = 0; // Reset the counter for the next search
       }
     } else {
-      // Se a flag está ativa, esperamos o robô se realinhar para desativá-la
-      if (robo_realinhado) {
-        aguardando_realinhar = false; // Desativa a flag, permitindo a busca pela próxima saída
+      // If the flag is active, we wait for the robot to realign to deactivate it
+      if (robot_realigned) {
+        waiting_for_realign = false; // Deactivate the flag, allowing the search for the next exit
       }
     }
   }
 
-  // sai da rotatória, o robô já estará alinhado com a saída, basta virar 90 graus
-  if (saidaCurva == SAIDA_ESQUERDA) {
-      turn_right(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  // exit the roundabout, the robot will already be aligned with the exit, just turn 90 degrees
+  if (curve_exit == LEFT_EXIT) {
+      turn_right(base_right_speed, base_left_speed);
       turn_until_angle(90);
   } else {
-      turn_left(velocidadeBaseDireita, velocidadeBaseEsquerda);
+      turn_left(base_right_speed, base_left_speed);
       turn_until_angle(90);
   }
 }
@@ -446,9 +446,9 @@ void realiza_rotatoria(int saidaCurva, int saidaDesejada) {
  * The robot stops, moves backward for a fixed duration, stops again,
  * and then turns 90 degrees to the specified side.
  * 
- * @param lado_da_curva The side to turn towards after reversing (`SAIDA_DIREITA` or `SAIDA_ESQUERDA`).
+ * @param curve_side The side to turn towards after reversing (`RIGHT_EXIT` or `LEFT_EXIT`).
  */
-void realiza_marcha_re(int lado_da_curva) {
+void perform_reverse_gear(int curve_side) {
   if (debugSD) write_sd(7);
   stop_motors();
   delay(1000);
@@ -456,39 +456,39 @@ void realiza_marcha_re(int lado_da_curva) {
   run_backward(255, 255); 
   delay(1200);
 
-  // 3. Pare novamente
+  // 3. Stop again
   stop_motors();
   delay(500);
 
-  run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  run(base_right_speed, base_left_speed);
   delay(200);
 
-  turn_90(lado_da_curva);
+  turn_90(curve_side);
 
   stop_motors();
   delay(500);
 }
 
-bool tenta_recuperar_linha() {
-  unsigned long tempoPerdido = millis();
-  int leiturasValidas = 0;
+bool try_to_recover_line() {
+  unsigned long time_lost = millis();
+  int valid_readings = 0;
 
   if (debugSD) write_sd(5); // perda de linha
 
-  while (millis() - tempoPerdido < TIME_WITHOUT_LINE) {
-    run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  while (millis() - time_lost < TIME_WITHOUT_LINE) {
+    run_backward(base_right_speed, base_left_speed);
     delay(50);
-    ler_sensores();
+    read_sensors();
 
-    // critério: sensor central detecta linha
-    if (SENSOR[1] == PRETO || SENSOR[2] == PRETO || SENSOR[3] == PRETO) {
-      leiturasValidas++;
-      if (leiturasValidas >= 3) { // exige 3 leituras consecutivas
+    // criterion: central sensor detects line
+    if (SENSOR[1] == BLACK || SENSOR[2] == BLACK || SENSOR[3] == BLACK) {
+      valid_readings++;
+      if (valid_readings >= 3) { // requires 3 consecutive readings
         stop_motors();
         return true;
       }
     } else {
-      leiturasValidas = 0; // perdeu de novo
+      valid_readings = 0; // lost it again
     }
   }
 
@@ -503,71 +503,71 @@ bool tenta_recuperar_linha() {
  * A control flag (`jaContou`) is used to ensure that the same marker
  * is not counted multiple times while the sensor remains over it.
  * 
- * @param estadoSensor The current state of the sensor (PRETO or BRANCO).
- * @param contagemAtual The current value of the marker counter.
- * @param jaContou Reference to a flag indicating if the current marker has already been counted.
+ * @param sensor_state The current state of the sensor (BLACK or WHITE).
+ * @param current_count The current value of the marker counter.
+ * @param already_counted Reference to a flag indicating if the current marker has already been counted.
  * @return int The updated marker count.
  */
-int contadorBranco = 0;
-const int TOLERANCIA_MARCACAO = 3; 
-int conta_marcacao(int estadoSensor, int contagemAtual, bool &jaContou, int &contadorBranco, unsigned long &tempoMarcacao) {
-  // evita detectar cruzemnto
-  if (calcula_sensores_ativos(SENSOR) <= 1) return contagemAtual;
-  // evita bug de falso postiivo
+int white_counter = 0;
+const int MARKER_TOLERANCE = 3; 
+int count_marker(int sensor_state, int current_count, bool &already_counted, int &white_counter, unsigned long &marker_time) {
+  // avoid detecting intersections
+  if (count_active_sensors(SENSOR) <= 1) return current_count;
+  // avoid false positive bug
   
-  if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) return contagemAtual;
+  if (right_markers >= 1 && left_markers >= 1) return current_count;
 
-  if (estadoSensor == BRANCO) {
-    contadorBranco++;
-    // Só conta se atingiu o limiar e ainda não tinha contado
-    if (contadorBranco >= TOLERANCIA_MARCACAO && !jaContou) {
-      jaContou = true;
-      tempoMarcacao = millis(); 
-      return contagemAtual + 1;
+  if (sensor_state == WHITE) {
+    white_counter++;
+    // Only count if the threshold is reached and it hasn't been counted yet
+    if (white_counter >= MARKER_TOLERANCE && !already_counted) {
+      already_counted = true;
+      marker_time = millis(); 
+      return current_count + 1;
     }
   } else {
-    // Reset quando sai do branco
-    contadorBranco = 0;
-    jaContou = false;
+    // Reset when leaving the white area
+    white_counter = 0;
+    already_counted = false;
   }
-  return contagemAtual;
+  return current_count;
 }
 
 
-void analisa_marcacoes() {
-  if (!inversaoAtiva) {
-    unsigned long tempoUltimaDeteccao = millis();
-    jaContouEsquerda = false;
-    jaContouDireita = false;
+void analyze_markers() {
+  if (!inversion_active) {
+    unsigned long last_detection_time = millis();
+    already_counted_left = false;
+    already_counted_right = false;
     
     // If there is a curve, store the number of markers
-    while((millis() - tempoUltimaDeteccao < TIMEOUT_MARCACAO)) {
+    while((millis() - last_detection_time < MARKER_TIMEOUT)) {
       // Update sensor values
-      ler_sensores();
+      read_sensors();
       
       // conta as marcacoes
-      static int contadorBrancoEsq = 0;
-      static int contadorBrancoDir = 0;
+      static int white_counter_left = 0;
+      static int white_counter_right = 0;
 
-      int marcacoesAntesEsq = marcacoesEsquerda;
-      int marcacoesAntesDir = marcacoesDireita;
+      int markers_before_left = left_markers;
+      int markers_before_right = right_markers;
 
-      marcacoesEsquerda = conta_marcacao(SENSOR_CURVA[0], marcacoesEsquerda, jaContouEsquerda, contadorBrancoEsq, tempoMarcacaoEsquerda);
-      marcacoesDireita  = conta_marcacao(SENSOR_CURVA[1], marcacoesDireita, jaContouDireita, contadorBrancoDir, tempoMarcacaoDireita);
+      left_markers = count_marker(CURVE_SENSORS[0], left_markers, already_counted_left, white_counter_left, left_marker_time);
+      right_markers  = count_marker(CURVE_SENSORS[1], right_markers, already_counted_right, white_counter_right, right_marker_time);
 
-      if (marcacoesEsquerda > marcacoesAntesEsq || marcacoesDireita > marcacoesAntesDir) {
-        tempoUltimaDeteccao = millis();
+      if (left_markers > markers_before_left || right_markers > markers_before_right) {
+        last_detection_time = millis();
       }
 
-      if (marcacoesDireita >= 1 && marcacoesEsquerda >= 1) {
-        marcacoesDireita = 1;
-        marcacoesEsquerda = 1;
+      if (right_markers >= 1 && left_markers >= 1) {
+        right_markers = 1;
+        left_markers = 1;
       }
 
       // Ensure the robot stays on the line
-      calcula_erro();
-      calcula_PID();
-      ajusta_movimento();
+      calculate_error();
+      calculate_PID();
+      adjust_movement();
       if (debugSD) write_sd(9);
     }
   }
@@ -575,29 +575,29 @@ void analisa_marcacoes() {
 
 void area_de_parada() {
   run(velocidadeBaseDireita - 5, velocidadeBaseEsquerda);
-  delay(1000); 
+  delay(1000);
   stop_motors();
   digitalWrite(LEDS, HIGH);
-  tempoLedLigou = millis();
-  ledLigado = true;
+  led_on_time = millis();
+  led_on = true;
   if (debugMode) Serial.println("Área de parada detectada. Robô parado.");
   if (debugSD) write_sd(3); // Log challenge 3: Stop area
   while(true);
 }
 
 void test_motors() {
-    //run(velocidadeBaseDireita, velocidadeBaseEsquerda);
+    //run(base_right_speed, base_left_speed);
   //delay(3000);
   //stop_motors();
   //delay(1000);
-  //run_backward(velocidadeBaseDireita, velocidadeBaseEsquerda);
+  //run_backward(base_right_speed, base_left_speed);
   //delay(3000);
   //stop_motors();
   //delay(1000);
-  //turn_90(CURVA_DIREITA);
+  //turn_90(RIGHT_CURVE);
   //stop_motors();
  // delay(1000);
-  //turn_90(CURVA_ESQUERDA);
+  //turn_90(LEFT_CURVE);
  // stop_motors();
   //delay(1000);
 

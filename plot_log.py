@@ -7,21 +7,21 @@ from scipy.signal import find_peaks, savgol_filter
 
 # Mapeia os códigos de desafio para propriedades de plotagem (cor, marcador, etc.)
 challenge_map = {
-    1: {'color': 'deepskyblue', 'label': 'Curva Direita', 'marker': 'v', 'size': 100},
-    2: {'color': 'gold', 'label': 'Faixa de Pedestre', 'marker': 's', 'size': 80},
-    3: {'color': 'red', 'label': 'Área de Parada', 'marker': '.', 'size': 120},
-    4: {'color': 'dodgerblue', 'label': 'Curva Esquerda', 'marker': 'v', 'size': 100},
-    5: {'color': 'magenta', 'label': 'Recuperando a linha', 'marker': 'o', 'size': 100},
-    6: {'color': 'gold', 'label': 'Curva Duvida', 'marker': '^', 'size': 100},
-    7: {'color': 'black', 'label': 'Ré', 'marker': '<', 'size': 100},
-    8: {'color': 'purple', 'label': 'Rotatoria', 'marker': '>', 'size': 100},
-    9: {'color': 'orange', 'label': 'Analisando contorno', 'marker': '8', 'size': 100},
-    10: {'color': 'blue', 'label': 'linha_invertida', 'marker': 's', 'size': 80},
-    11: {'color': 'pink', 'label': 'Inversão finalizada', 'marker': 'p', 'size': 80},
-    12: {'color': 'darkorange', 'label': 'Reajuste faixa', 'marker': 's', 'size': 40},
-    13: {'color': 'olive', 'label': 'evitando curva', 'marker': '*', 'size': 40},
-    14: {'color': 'orangered', 'label': 'travessia faixa', 'marker': 's', 'size': 70},
-    15: {'color': 'red', 'label': 'fim de travessia', 'marker': 's', 'size': 70}
+    1: {'color': 'deepskyblue', 'label': 'Right Curve', 'marker': 'v', 'size': 100},
+    2: {'color': 'gold', 'label': 'Pedestrian Crossing', 'marker': 's', 'size': 80},
+    3: {'color': 'red', 'label': 'Stop Area', 'marker': '.', 'size': 120},
+    4: {'color': 'dodgerblue', 'label': 'Left Curve', 'marker': 'v', 'size': 100},
+    5: {'color': 'magenta', 'label': 'Recovering Line', 'marker': 'o', 'size': 100},
+    6: {'color': 'gold', 'label': 'Doubtful Curve', 'marker': '^', 'size': 100},
+    7: {'color': 'black', 'label': 'Reverse', 'marker': '<', 'size': 100},
+    8: {'color': 'purple', 'label': 'Roundabout', 'marker': '>', 'size': 100},
+    9: {'color': 'orange', 'label': 'Analyzing Contour', 'marker': '8', 'size': 100},
+    10: {'color': 'blue', 'label': 'Inverted Line', 'marker': 's', 'size': 80},
+    11: {'color': 'pink', 'label': 'Inversion Finished', 'marker': 'p', 'size': 80},
+    12: {'color': 'darkorange', 'label': 'Crossing Readjustment', 'marker': 's', 'size': 40},
+    13: {'color': 'olive', 'label': 'Avoiding Curve', 'marker': '*', 'size': 40},
+    14: {'color': 'orangered', 'label': 'Crossing Traverse', 'marker': 's', 'size': 70},
+    15: {'color': 'red', 'label': 'End of Traverse', 'marker': 's', 'size': 70}
 }
 
 
@@ -256,11 +256,11 @@ def plot_data(df, Kp, Ki, Kd):
     ax3.legend()
 
     # Plot 4: Motor Velocities vs. Time
-    ax4.plot(df['Time'], df['Velocidade Direita'], label='Velocidade Direita', color='purple')
-    ax4.plot(df['Time'], df['Velocidade Esquerda'], label='Velocidade Esquerda', color='orange')
-    ax4.set_title('Velocidade dos Motores vs. Tempo')
+    ax4.plot(df['Time'], df['RightSpeed'], label='Right Speed', color='purple')
+    ax4.plot(df['Time'], df['LeftSpeed'], label='Left Speed', color='orange')
+    ax4.set_title('Motor Speed vs. Time')
     ax4.set_xlabel('Time (ms)')
-    ax4.set_ylabel('Velocidade')
+    ax4.set_ylabel('Speed')
     ax4.grid(True)
     ax4.legend()
 
@@ -278,7 +278,7 @@ def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
         Ki (float): Ganho Integral atual.
         Kd (float): Ganho Derivativo atual.
     """
-    print("\n--- Análise de Desempenho & Sugestões de Ajuste (Baseado na Tabela) ---")
+    print("\n--- Performance Analysis & Tuning Suggestions (Based on Table) ---")
     
     error = df['Error'].to_numpy()
     
@@ -292,57 +292,57 @@ def analyze_performance_and_suggest_pid(df, Kp, Ki, Kd):
     troughs, _ = find_peaks(-error, prominence=0.5)
     num_oscillations = len(peaks) + len(troughs)
     
-    print(f"Erro Médio Absoluto (MAE): {mae:.4f}")
-    print(f"Máximo Erro Absoluto (Overshoot/Undershoot): {max_abs_error:.4f}")
-    print(f"Detectadas {num_oscillations} oscilações significativas (picos/vales).")
+    print(f"Mean Absolute Error (MAE): {mae:.4f}")
+    print(f"Maximum Absolute Error (Overshoot/Undershoot): {max_abs_error:.4f}")
+    print(f"Detected {num_oscillations} significant oscillations (peaks/valleys).")
 
     # 3. Fornecer sugestões de ajuste com base nas heurísticas da tabela
-    print("\nSugestões:")
+    print("\nSuggestions:")
     
     suggestion_made = False
 
     # Comportamento: "Oscila muito em torno da linha (zig-zag)"
     if num_oscillations > 8: # Limiar mais alto para oscilação clara
-        print("- Comportamento Detectado: O robô oscila muito em torno da linha (zig-zag).")
-        print(f"  - Ação Recomendada: Diminua o valor de Kp (atual: {Kp}). Um Kp muito alto causa reações exageradas.")
+        print("- Detected Behavior: The robot oscillates a lot around the line (zig-zag).")
+        print(f"  - Recommended Action: Decrease the Kp value (current: {Kp}). A very high Kp causes exaggerated reactions.")
         suggestion_made = True
 
     # Comportamento: "Corrige devagar e não consegue seguir bem a linha"
     if mae > 1.2 and num_oscillations < 5:
-        print("- Comportamento Detectado: O robô corrige devagar e não segue a linha com precisão.")
-        print(f"  - Ação Recomendada: Aumente o valor de Kp (atual: {Kp}). Um Kp muito baixo gera correções fracas.")
+        print("- Detected Behavior: The robot corrects slowly and does not follow the line with precision.")
+        print(f"  - Recommended Action: Increase the Kp value (current: {Kp}). A very low Kp generates weak corrections.")
         suggestion_made = True
 
     # Comportamento: "Erro pequeno persiste por muito tempo"
     if mae > 0.2 and mae < 1.0 and not (num_oscillations > 5):
-        print("- Comportamento Detectado: Um erro pequeno parece persistir, não centralizando perfeitamente.")
-        print(f"  - Ação Recomendada: Aumente Ki (atual: {Ki}) para corrigir erros acumulados lentamente.")
+        print("- Detected Behavior: A small error seems to persist, not centering perfectly.")
+        print(f"  - Recommended Action: Increase Ki (current: {Ki}) to slowly correct accumulated errors.")
         suggestion_made = True
 
     # Comportamento: "Começa a oscilar após um tempo seguindo bem" (Instabilidade do Integral)
     if num_oscillations > 5 and Ki > 0: # Se está oscilando e Ki está ativo
-        print("- Causa Possível da Oscilação: O termo integral (Ki) pode estar acumulando erro demais.")
-        print(f"  - Ação Recomendada: Diminua Ki (atual: {Ki}) para reduzir a instabilidade causada pelo erro acumulado.")
+        print("- Possible Cause of Oscillation: The integral term (Ki) may be accumulating too much error.")
+        print(f"  - Recommended Action: Decrease Ki (current: {Ki}) to reduce instability caused by accumulated error.")
         suggestion_made = True
 
     # Comportamento: "Reação muito abrupta a mudanças rápidas na linha"
     if max_abs_error > 2.5: # Overshoot significativo
-        print("- Comportamento Detectado: Reação muito abrupta a mudanças, com overshoot/undershoot elevado.")
-        print(f"  - Ação Recomendada: Aumente Kd (atual: {Kd}) para suavizar a resposta e 'frear' mudanças bruscas.")
+        print("- Detected Behavior: Very abrupt reaction to changes, with high overshoot/undershoot.")
+        print(f"  - Recommended Action: Increase Kd (current: {Kd}) to smooth the response and 'brake' sudden changes.")
         suggestion_made = True
 
     # Comportamento: "Resposta lenta a mudanças rápidas"
     if mae > 1.0 and Kd > 0:
         # Esta é uma sugestão de ajuste fino, pode aparecer junto com a de "aumentar Kp".
-        print("- Ajuste Fino para Curvas: Se o robô parece 'amortecido' demais e lento para iniciar uma curva.")
-        print(f"  - Ação Recomendada: Considere diminuir Kd (atual: {Kd}) para permitir uma reação mais rápida a desvios.")
+        print("- Fine Tuning for Curves: If the robot seems too 'damped' and slow to start a turn.")
+        print(f"  - Recommended Action: Consider decreasing Kd (current: {Kd}) to allow a faster reaction to deviations.")
         suggestion_made = True
 
     # Mensagem padrão se nenhum comportamento claro for detectado
     if not suggestion_made:
-        print("- O desempenho parece razoável. O ajuste fino pode envolver pequenas alterações nos parâmetros atuais.")
+        print("- Performance seems reasonable. Fine-tuning may involve small changes to the current parameters.")
 
-    print("\nNota: Estas são sugestões gerais. Os valores ótimos dependem da dinâmica do robô e da pista.")
+    print("\nNote: These are general suggestions. The optimal values depend on the robot's dynamics and the track.")
 
 def run_analysis_flow(log_dir):
     """Handles the entire file analysis and plotting workflow."""
@@ -389,11 +389,11 @@ def run_analysis_flow(log_dir):
             df['Challenge'] = df['Challenge'].fillna(0).astype(int)
         except pd.errors.EmptyDataError:
             print(f"Error: O arquivo de log '{basename}' está vazio.")
-            input("Pressione Enter para continuar...")
+            input("Press Enter to continue...")
             continue
         except Exception as e:
             print(f"Ocorreu um erro ao ler o arquivo '{basename}': {e}")
-            input("Pressione Enter para continuar...")
+            input("Press Enter to continue...")
             continue
 
         # Calculate PID components and merge them into the main DataFrame
