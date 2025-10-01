@@ -28,7 +28,7 @@ The robot's control system is built on the Arduino framework, using C++ for real
 ### 2. Electronics & Hardware
 
 <a href="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png">
-  <img src="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png" alt="Electronic Circuit Diagram" width="500">
+ <img src="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png" alt="Electronic Circuit Diagram" width="500">
 </a>
 <p>A schematic of the electronic circuitry used in the robot.</p>
 
