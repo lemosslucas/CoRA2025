@@ -67,8 +67,7 @@ In the 2025 edition of the CoRA competition, our team was honored to receive the
 * **1st Place🥇 - Best Design**
 
 <a href="https://www.youtube.com/watch?v=5dsM9JK7ZyI">
-  <img src="https://www.youtube.com/watch?v=5dsM9JK7ZyI" alt="CoRA 2025 - Round Performances" width="500">
-  <img src="https://img.youtube.com/vi/5dsM9JK7ZyI/0.jpg" alt="CoRA 2025 - Round Performances" width="500">
+  <img src="https://img.youtube.com/vi/5dsM9JK7ZyI/0.jpg" alt="Participation in the Autonomous Robot Competition at UFMG (CoRA) 2025" width="500">
 </a>
 <p>This video showcases our robot's performance during the rounds of the competition.</p>
 
