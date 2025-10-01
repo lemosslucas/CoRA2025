@@ -1,6 +1,6 @@
 # CoRA 2025 (Autonomous Robot Competition) - Line Follower
 
-![CoRA2025 Banner](http://cora.cpdee.ufmg.br/img/imgs/banner_cora24.png) This repository contains all files used in the development and testing of our autonomous line-follower robot for the 2025 CoRA competition. The challenge involves prototyping, building, programming, and testing a robot from scratch, utilizing tools such as the Arduino Framework, CAD software, and circuit simulation.
+![CoRA2025 Banner](miscellaneous/CoRA2025_Banner.png) This repository contains all files used in the development and testing of our autonomous line-follower robot for the 2025 CoRA competition. The challenge involves prototyping, building, programming, and testing a robot from scratch, utilizing tools such as the Arduino Framework, CAD software, and circuit simulation.
 
 ## Technical Overview
 
