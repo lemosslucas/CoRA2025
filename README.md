@@ -1,6 +1,8 @@
 # CoRA 2025 (Autonomous Robot Competition) - Line Follower
 
-![CoRA2025 Banner](miscellaneous/CoRA2025_Banner.png) This repository contains all files used in the development and testing of our autonomous line-follower robot for the 2025 CoRA competition. The challenge involves prototyping, building, programming, and testing a robot from scratch, utilizing tools such as the Arduino Framework, CAD software, and circuit simulation.
+![CoRA2025 Banner](miscellaneous/CoRA2025_Banner.png) 
+\
+This repository contains all files used in the development and testing of our autonomous line-follower robot for the 2025 CoRA competition. The challenge involves prototyping, building, programming, and testing a robot from scratch, utilizing tools such as the Arduino Framework, CAD software, and circuit simulation.
 
 ## Technical Overview
 
@@ -26,11 +28,12 @@ The robot's control system is built on the Arduino framework, using C++ for real
 - [Python](https://python.org): Data Analysis, plotting and script-based testing
 
 ### 2. Electronics & Hardware
-
-<a href="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png">
- <img src="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png" alt="Electronic Circuit Diagram" width="500">
-</a>
-<p>A schematic of the electronic circuitry used in the robot.</p>
+<p align="center">
+  <a href="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png">
+    <img src="miscellaneous/CoRA2025_ElectronicDiagram_V1.3.png" alt="Electronic Circuit Diagram" width="500">
+  </a><br>
+  <em>A schematic of the electronic circuitry used in the robot.</em>
+</p>
 
 #### Key Components
 - **Power Source:**
@@ -48,8 +51,10 @@ Regulated to 6V by a [Buck converter](https://www.eletrogate.com/modulo-regulado
 
 The robot's chassis and body were designed in [Fusion 360](https://www.autodesk.com/products/fusion-360/overview) and [SolidWorks](https://www.solidworks.com/product/solidworks-3d-cad) to be lightweight, durable, and provide optimal sensor positioning.
 
-<img src="miscellaneous/car.gif" alt="CAD render of the robot assembly" width="500">
-<p>A render of the complete robot assembly.</p>
+<p align="center">
+  <img src="miscellaneous/car.gif" alt="CAD render of the robot assembly" width="500"><br>
+  <em>A render of the complete robot assembly.</em>
+</p>
 
 <p>The technical drawing files for the chassis and other components can be found in the <a href="miscellaneous/">miscellaneous directory</a>. Key design files include:</p>
 <ul>
@@ -66,10 +71,12 @@ In the 2025 edition of the CoRA competition, our team was honored to receive the
 * **3rd Place🥉 - Advanced Line Follower Category**
 * **1st Place🥇 - Best Design**
 
-<a href="https://www.youtube.com/watch?v=5dsM9JK7ZyI">
-  <img src="https://img.youtube.com/vi/5dsM9JK7ZyI/0.jpg" alt="Participation in the Autonomous Robot Competition at UFMG (CoRA) 2025" width="500">
-</a>
-<p>This video showcases our robot's performance during the rounds of the competition.</p>
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=5dsM9JK7ZyI">
+    <img src="https://img.youtube.com/vi/5dsM9JK7ZyI/0.jpg" alt="Participation in the Autonomous Robot Competition at UFMG (CoRA) 2025" width="500">
+  </a><br>
+  <em>This video showcases our robot's performance during the rounds of the competition.</em>
+</p>
 
 ## Developers
 
